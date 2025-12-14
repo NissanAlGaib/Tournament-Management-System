@@ -228,7 +228,7 @@ function showNotification(message, type = "info") {
 }
 
 // Handle logout
-function handleLogout() {
-  Auth.logout();
-  window.location.href = "layout.php";
+async function handleLogout() {
+  await Auth.logout();
+  window.location.href = "../../layout.php";
 }
