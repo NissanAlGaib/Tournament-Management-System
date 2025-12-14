@@ -8,6 +8,7 @@ window.Auth = Auth;
 // DOM Elements
 let homeContent;
 let currentSection = "dashboard";
+let currentTournamentId = null; // Store current tournament ID for details page
 
 // Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
@@ -34,6 +35,9 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("nav-tournaments")
     ?.addEventListener("click", () => loadSection("tournaments"));
+  document
+    .getElementById("nav-my-tournaments")
+    ?.addEventListener("click", () => loadSection("my-tournaments"));
   document
     .getElementById("nav-profile")
     ?.addEventListener("click", () => loadSection("profile"));
@@ -72,6 +76,10 @@ function loadSection(sectionName) {
         setupProfile();
       } else if (sectionName === "tournaments") {
         setupTournaments();
+      } else if (sectionName === "my-tournaments") {
+        setTimeout(() => setupMyTournaments(), 10);
+      } else if (sectionName === "tournament-details") {
+        setTimeout(() => setupTournamentDetails(), 10);
       }
     })
     .catch((error) => {
@@ -87,7 +95,12 @@ function loadSection(sectionName) {
 // Update active navigation button
 function updateActiveNav(sectionName) {
   // Remove active class from all nav buttons
-  const navButtons = ["nav-dashboard", "nav-tournaments", "nav-profile"];
+  const navButtons = [
+    "nav-dashboard",
+    "nav-tournaments",
+    "nav-my-tournaments",
+    "nav-profile",
+  ];
   navButtons.forEach((id) => {
     const btn = document.getElementById(id);
     if (btn) {
@@ -395,5 +408,472 @@ function setupTournaments() {
         emptyState.classList.remove("hidden");
       }
     }
+  }
+}
+
+// Global functions for tournament actions (must be defined before setupMyTournaments)
+window.viewTournamentDetails = function (tournamentId) {
+  currentTournamentId = tournamentId;
+  loadSection("tournament-details");
+};
+
+window.filterMyTournaments = function (filter) {
+  // This will be overridden in setupMyTournaments with the proper closure
+  console.log("Filter function called before setup");
+};
+
+window.withdrawFromTournament = async function (tournamentId, tournamentName) {
+  if (!confirm(`Are you sure you want to withdraw from "${tournamentName}"?\n\nThis action cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('auth_token');
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (typeof window.TournamentAPI === 'undefined') {
+      window.TournamentAPI = {
+        baseURL: '/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php'
+      };
+    }
+
+    const response = await fetch(window.TournamentAPI.baseURL, {
+      method: "POST",
+      headers: headers,
+      credentials: "include",
+      body: JSON.stringify({
+        action: "withdraw",
+        tournament_id: tournamentId,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert("Successfully withdrawn from tournament");
+      // Reload the my tournaments section
+      loadSection("my-tournaments");
+    } else {
+      alert("Error: " + (data.message || "Failed to withdraw from tournament"));
+    }
+  } catch (error) {
+    console.error("Error withdrawing from tournament:", error);
+    alert("Error withdrawing from tournament. Please try again.");
+  }
+};
+
+// Setup my tournaments section
+function setupMyTournaments() {
+  console.log("Setting up my tournaments section...");
+
+  // Ensure TournamentAPI is available
+  if (typeof window.TournamentAPI === "undefined") {
+    window.TournamentAPI = {
+      baseURL:
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+    };
+  }
+
+  let myTournamentsData = [];
+  let currentFilter = "all";
+
+  // Initialize and load tournaments immediately
+  loadMyTournaments();
+
+  async function loadMyTournaments() {
+    console.log("loadMyTournaments called");
+    const loadingState = document.getElementById("loadingState");
+    const emptyState = document.getElementById("emptyState");
+    const grid = document.getElementById("tournamentsGrid");
+
+    console.log("Elements found:", { loadingState, emptyState, grid });
+
+    if (!loadingState || !emptyState || !grid) {
+      console.error("Required elements not found!");
+      return;
+    }
+
+    loadingState.classList.remove("hidden");
+    emptyState.classList.add("hidden");
+    grid.classList.add("hidden");
+
+    console.log(
+      "Fetching from:",
+      window.TournamentAPI.baseURL + "?action=my-tournaments"
+    );
+
+    try {
+      // Get auth token from localStorage
+      const token = localStorage.getItem("auth_token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        window.TournamentAPI.baseURL + "?action=my-tournaments",
+        {
+          credentials: "include",
+          headers: headers,
+        }
+      );
+
+      console.log("Response status:", response.status);
+
+      if (!response.ok) {
+        throw new Error("Failed to load tournaments");
+      }
+
+      const data = await response.json();
+      console.log("API Response:", data);
+
+      if (data.success) {
+        myTournamentsData = data.tournaments || [];
+        console.log("Tournaments loaded:", myTournamentsData.length);
+        renderMyTournaments();
+        loadNotifications();
+      } else {
+        throw new Error(data.message || "Failed to load tournaments");
+      }
+    } catch (error) {
+      console.error("Error loading tournaments:", error);
+      loadingState.classList.add("hidden");
+      emptyState.classList.remove("hidden");
+      const errorP = emptyState.querySelector("p");
+      if (errorP) {
+        errorP.textContent = "Error loading tournaments. Please try again.";
+      }
+    }
+  }
+
+  function renderMyTournaments() {
+    const loadingState = document.getElementById("loadingState");
+    const emptyState = document.getElementById("emptyState");
+    const grid = document.getElementById("tournamentsGrid");
+
+    loadingState.classList.add("hidden");
+
+    let filteredTournaments = myTournamentsData;
+
+    console.log(
+      "Rendering tournaments. Total:",
+      myTournamentsData.length,
+      "Current filter:",
+      currentFilter
+    );
+
+    // Apply filter
+    if (currentFilter !== "all") {
+      filteredTournaments = myTournamentsData.filter((t) => {
+        if (currentFilter === "upcoming")
+          return t.status === "open" || t.status === "registration_closed";
+        if (currentFilter === "ongoing") return t.status === "ongoing";
+        if (currentFilter === "completed") return t.status === "completed";
+        return true;
+      });
+      console.log("After filtering:", filteredTournaments.length);
+    }
+
+    if (filteredTournaments.length === 0) {
+      console.log("No tournaments to display - showing empty state");
+      emptyState.classList.remove("hidden");
+      grid.classList.add("hidden");
+    } else {
+      console.log("Displaying", filteredTournaments.length, "tournaments");
+      emptyState.classList.add("hidden");
+      grid.classList.remove("hidden");
+      grid.innerHTML = filteredTournaments
+        .map((tournament) => createMyTournamentCard(tournament))
+        .join("");
+    }
+  }
+
+  function createMyTournamentCard(tournament) {
+    const statusColors = {
+      draft: "bg-gray-100 text-gray-800",
+      open: "bg-green-100 text-green-800",
+      registration_closed: "bg-yellow-100 text-yellow-800",
+      ongoing: "bg-blue-100 text-blue-800",
+      completed: "bg-purple-100 text-purple-800",
+      cancelled: "bg-red-100 text-red-800",
+    };
+
+    const canWithdraw =
+      tournament.status === "open" ||
+      tournament.status === "registration_closed";
+    const isWithdrawn = tournament.registration_status === "withdrawn";
+
+    return `
+      <div class="bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-700">
+        <div class="flex justify-between items-start mb-4">
+          <h3 class="text-xl font-semibold text-white">${tournament.name}</h3>
+          <span class="px-2 py-1 text-xs font-semibold rounded ${
+            statusColors[tournament.status] || "bg-gray-100 text-gray-800"
+          }">
+            ${tournament.status.replace("_", " ").toUpperCase()}
+          </span>
+        </div>
+
+        <div class="space-y-2 text-sm text-gray-400 mb-4">
+          <div class="flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <span>Starts: ${new Date(
+              tournament.start_date
+            ).toLocaleDateString()}</span>
+          </div>
+          <div class="flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span>${tournament.registered_participants || 0} / ${
+      tournament.max_participants || tournament.tournament_size
+    } Participants</span>
+          </div>
+          ${
+            tournament.team_name
+              ? `
+          <div class="flex items-center text-cyan-400">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span>Team: ${tournament.team_name}</span>
+          </div>
+          `
+              : ""
+          }
+          ${
+            isWithdrawn
+              ? `
+          <div class="flex items-center text-red-400 font-semibold">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <span>Withdrawn</span>
+          </div>
+          `
+              : ""
+          }
+        </div>
+
+        <div class="flex gap-2">
+          <button onclick="viewTournamentDetails(${
+            tournament.id
+          })" class="flex-1 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors text-sm">
+            View Details
+          </button>
+          ${
+            !isWithdrawn && canWithdraw
+              ? `
+          <button onclick="withdrawFromTournament(${tournament.id}, '${tournament.name}')" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm">
+            Withdraw
+          </button>
+          `
+              : ""
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  // Override filterMyTournaments with proper closure access
+  window.filterMyTournaments = function (filter) {
+    currentFilter = filter;
+
+    // Update tab styles
+    document.querySelectorAll(".tournament-filter-tab").forEach((tab) => {
+      tab.classList.remove("active", "border-blue-500", "text-blue-600");
+      tab.classList.add("border-transparent", "text-gray-500");
+    });
+
+    event.target.classList.remove("border-transparent", "text-gray-500");
+    event.target.classList.add("active", "border-blue-500", "text-blue-600");
+
+    renderMyTournaments();
+  };
+
+  async function loadNotifications() {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        window.TournamentAPI.baseURL + "?action=notifications",
+        {
+          credentials: "include",
+          headers: headers,
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.notifications) {
+          const unreadCount = data.notifications.filter(
+            (n) => !n.is_read
+          ).length;
+          if (unreadCount > 0) {
+            const badge = document.getElementById("notificationBadge");
+            const count = document.getElementById("notificationCount");
+            if (badge && count) {
+              badge.classList.remove("hidden");
+              count.textContent = unreadCount;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading notifications:", error);
+    }
+  }
+}
+
+// Setup tournament details section
+function setupTournamentDetails() {
+  console.log("Setting up tournament details section for ID:", currentTournamentId);
+
+  if (!currentTournamentId) {
+    console.error("No tournament ID specified");
+    const container = document.getElementById("tournamentDetailsContainer");
+    if (container) {
+      container.innerHTML = `
+        <div class="text-center text-red-400 p-12">
+          <p class="text-xl">No tournament specified</p>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  // Ensure TournamentAPI is available
+  if (typeof window.TournamentAPI === 'undefined') {
+    window.TournamentAPI = {
+      baseURL: '/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php'
+    };
+  }
+
+  loadTournamentDetails(currentTournamentId);
+
+  async function loadTournamentDetails(tournamentId) {
+    const loadingState = document.getElementById("loadingDetailsState");
+    const contentDiv = document.getElementById("tournamentDetailsContent");
+
+    console.log("Loading tournament details for ID:", tournamentId);
+
+    if (loadingState) loadingState.classList.remove("hidden");
+    if (contentDiv) contentDiv.classList.add("hidden");
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        window.TournamentAPI.baseURL + `?action=tournament&id=${tournamentId}`,
+        {
+          credentials: "include",
+          headers: headers
+        }
+      );
+
+      console.log("Tournament details response status:", response.status);
+
+      if (!response.ok) {
+        throw new Error("Failed to load tournament details");
+      }
+
+      const data = await response.json();
+      console.log("Tournament details data:", data);
+
+      if (data.success && data.tournament) {
+        renderTournamentDetails(data.tournament);
+      } else {
+        throw new Error(data.message || "Failed to load tournament details");
+      }
+    } catch (error) {
+      console.error("Error loading tournament details:", error);
+      if (loadingState) loadingState.classList.add("hidden");
+      if (contentDiv) {
+        contentDiv.classList.remove("hidden");
+        contentDiv.innerHTML = `
+          <div class="text-center text-red-400 p-12">
+            <p class="text-xl">Error loading tournament details</p>
+            <p class="text-sm mt-2">${error.message}</p>
+          </div>
+        `;
+      }
+    }
+  }
+
+  function renderTournamentDetails(tournament) {
+    const loadingState = document.getElementById("loadingDetailsState");
+    const contentDiv = document.getElementById("tournamentDetailsContent");
+
+    if (loadingState) loadingState.classList.add("hidden");
+    if (!contentDiv) return;
+
+    contentDiv.classList.remove("hidden");
+
+    // Render basic tournament details
+    contentDiv.innerHTML = `
+      <div class="space-y-6">
+        <div class="bg-gray-800 rounded-2xl border border-cyan-500/30 p-6">
+          <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-4">
+            ${tournament.name}
+          </h1>
+          <div class="flex items-center space-x-4 text-gray-400">
+            <span class="px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg">
+              ${tournament.status.toUpperCase()}
+            </span>
+            <span>${tournament.format}</span>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Tournament Info</h3>
+            <div class="space-y-3 text-gray-400">
+              <div class="flex justify-between">
+                <span>Start Date:</span>
+                <span class="text-white">${new Date(tournament.start_date).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>End Date:</span>
+                <span class="text-white">${new Date(tournament.end_date).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Participants:</span>
+                <span class="text-white">${tournament.participants_count || 0} / ${tournament.max_participants}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Description</h3>
+            <p class="text-gray-400">${tournament.description || 'No description available.'}</p>
+          </div>
+        </div>
+      </div>
+    `;
   }
 }
