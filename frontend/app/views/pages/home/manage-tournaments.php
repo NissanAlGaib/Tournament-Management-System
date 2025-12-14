@@ -4,6 +4,9 @@ $pageTitle = 'Manage Tournaments';
 require_once __DIR__ . '/../../../includes/header.php';
 ?>
 
+<!-- Notification Toast -->
+<div id="notificationToast" class="hidden fixed top-4 right-4 z-[9999] max-w-md"></div>
+
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
@@ -58,6 +61,29 @@ require_once __DIR__ . '/../../../includes/header.php';
 (function() {
     let currentTournaments = [];
 
+    // Show notification toast
+    function showNotification(message, type = 'success') {
+        const toast = document.getElementById('notificationToast');
+        const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+        
+        toast.innerHTML = `
+            <div class="${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 animate-slide-in">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${type === 'success' ? 
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>' :
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>'
+                    }
+                </svg>
+                <span class="font-medium">${escapeHtml(message)}</span>
+            </div>
+        `;
+        toast.classList.remove('hidden');
+        
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 3000);
+    }
+
     // Load tournaments
     async function loadTournaments() {
         try {
@@ -77,7 +103,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             }
         } catch (error) {
             console.error('Error loading tournaments:', error);
-            showError(error.message);
+            showNotification(error.message, 'error');
         }
     }
 
@@ -164,7 +190,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             }
         } catch (error) {
             console.error('Error loading participants:', error);
-            alert('Error: ' + error.message);
+            showNotification(error.message, 'error');
         }
     };
 
@@ -244,7 +270,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             const data = await response.json();
 
             if (data.success) {
-                alert('Participant approved successfully!');
+                showNotification('Participant approved successfully!', 'success');
                 viewParticipants(tournamentId); // Reload participants
                 loadTournaments(); // Reload tournament counts
             } else {
@@ -252,7 +278,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             }
         } catch (error) {
             console.error('Error approving participant:', error);
-            alert('Error: ' + error.message);
+            showNotification(error.message, 'error');
         }
     };
 
@@ -278,7 +304,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             const data = await response.json();
 
             if (data.success) {
-                alert('Participant rejected successfully!');
+                showNotification('Participant rejected successfully!', 'success');
                 viewParticipants(tournamentId); // Reload participants
                 loadTournaments(); // Reload tournament counts
             } else {
@@ -286,7 +312,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             }
         } catch (error) {
             console.error('Error rejecting participant:', error);
-            alert('Error: ' + error.message);
+            showNotification(error.message, 'error');
         }
     };
 
@@ -308,7 +334,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             }
         } catch (error) {
             console.error('Error loading teams:', error);
-            alert('Error: ' + error.message);
+            showNotification(error.message, 'error');
         }
     };
 
@@ -399,7 +425,7 @@ require_once __DIR__ . '/../../../includes/header.php';
 
     function showError(message) {
         document.getElementById('loadingState').classList.add('hidden');
-        alert('Error: ' + message);
+        showNotification(message, 'error');
     }
 
     // Close modal
