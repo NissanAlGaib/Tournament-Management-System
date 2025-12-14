@@ -267,14 +267,21 @@ Expected output:
 
 ### API Integration
 
-Example: `backend/api/tournament_api_example.php` provides:
+### API Integration
+
+The tournament management system includes a fully functional REST API at `backend/api/tournament_api.php`:
 - Complete CRUD operations
-- Role-based access control
+- Role-based access control  
 - Input sanitization
 - Error handling
 - Transaction support
 
-Rename to `tournament_api.php` and customize as needed.
+Frontend integration via `frontend/src/js/tournament.js`:
+- API client functions
+- UI rendering utilities
+- Dynamic tournament loading
+
+The tournaments page (`frontend/app/views/pages/home/tournaments.php`) now displays real data from the database.
 
 ## Security Features
 
@@ -299,18 +306,20 @@ Rename to `tournament_api.php` and customize as needed.
    - Run setup_roles.sql (if not already done)
    - Run tournament_management.sql
 
-2. **Create API Endpoints**
-   - Rename tournament_api_example.php to tournament_api.php
-   - Customize endpoints as needed
-   - Add business logic
+2. **Test the Implementation**
+   - Access `/frontend/app/views/pages/home/tournaments.php` to view tournaments
+   - Create tournaments as an Organizer user
+   - Register for tournaments as a Player
+   - Test all API endpoints
 
-3. **Update Frontend**
-   - Modify tournaments.php to fetch real data
+3. **Extend Functionality (Optional)**
    - Add tournament creation form for organizers
    - Implement bracket visualization
-   - Add leaderboard display
+   - Add match result submission
+   - Create tournament details page
+   - Build leaderboard display
 
-4. **Test Thoroughly**
+4. **Deploy to Production**
    - Use test_tournament_schema.sql for testing
    - Create sample tournaments
    - Test all workflows
@@ -327,11 +336,16 @@ backend/
 ├── database/
 │   ├── setup_roles.sql              # Base schema (updated with users table)
 │   ├── tournament_management.sql     # Tournament schema ⭐ NEW
-│   ├── TOURNAMENT_SETUP_README.md   # Integration guide ⭐ NEW
-│   ├── validate_schema.sh           # Validation script ⭐ NEW
-│   └── test_tournament_schema.sql   # Test queries ⭐ NEW
+│   └── TOURNAMENT_SETUP_README.md   # Integration guide ⭐ NEW
 ├── api/
-│   └── tournament_api_example.php   # API examples ⭐ NEW
+│   └── tournament_api.php           # Tournament REST API ⭐ NEW
+├── classes/
+│   └── Tournament.class.php         # Tournament management class ⭐ NEW
+frontend/
+├── src/js/
+│   └── tournament.js                # Tournament API client & UI ⭐ NEW
+├── app/views/pages/home/
+│   └── tournaments.php              # Dynamic tournament listing ⭐ UPDATED
 ```
 
 ## Support & Troubleshooting
