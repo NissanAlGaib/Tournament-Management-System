@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/../../../helpers/path_helper.php';
+?>
 <div class="space-y-6">
     <!-- Tournaments Header -->
     <div class="flex items-center justify-between">
@@ -85,9 +88,14 @@
 }
 </style>
 
-<script src="/frontend/src/js/tournament.js"></script>
+<script src="<?php echo getAssetPath('js/tournament.js'); ?>"></script>
 <script>
     let currentFilter = '';
+    
+    // Set the base API path dynamically
+    if (typeof TournamentAPI !== 'undefined') {
+        TournamentAPI.baseURL = '<?php echo getBackendPath('api/tournament_api.php'); ?>';
+    }
 
     // Load tournaments on page load
     document.addEventListener('DOMContentLoaded', function() {
