@@ -145,59 +145,38 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
 
             // Setup create tournament button
             function setupCreateButton() {
-                console.log('Setting up create button');
+                console.log('=== SETUP CREATE BUTTON FUNCTION CALLED ===');
                 const createBtn = document.getElementById('createTournamentBtn');
+                console.log('Button element:', createBtn);
+
                 if (!createBtn) {
-                    console.log('Create button not found');
+                    console.log('Create button element not found - EXITING');
                     return;
                 }
 
-                // Check user roles and show button if user is Organizer or Admin
-                const userDataStr = localStorage.getItem('user');
-                console.log('User data from localStorage:', userDataStr);
-                
-                if (userDataStr) {
-                    try {
-                        const userData = JSON.parse(userDataStr);
-                        console.log('Parsed user data:', userData);
-                        console.log('User data has roles property:', userData.hasOwnProperty('roles'));
-                        console.log('Roles value:', userData.roles);
-                        
-                        if (userData.roles && Array.isArray(userData.roles)) {
-                            console.log('Roles array length:', userData.roles.length);
-                            console.log('All roles:', userData.roles);
-                            
-                            const hasPermission = userData.roles.some(role => {
-                                console.log('Checking role:', role, 'role_name:', role.role_name);
-                                return role.role_name === 'Organizer' || role.role_name === 'Admin';
-                            });
-                            
-                            console.log('User roles:', userData.roles.map(r => r.role_name));
-                            console.log('Has permission to create tournament:', hasPermission);
-                            
-                            if (hasPermission) {
-                                createBtn.classList.remove('hidden');
-                                createBtn.classList.add('block'); // Show as block element
-                                console.log('Create button shown - button classes:', createBtn.className);
-                                console.log('Button display style:', createBtn.style.display);
-                                console.log('Button computed display:', window.getComputedStyle(createBtn).display);
-                                
-                                // Add click handler only if user has permission
-                                createBtn.addEventListener('click', function() {
-                                    window.location.href = '<?php echo getPagePath('home/create-tournament.php'); ?>';
-                                });
-                            } else {
-                                console.log('User does not have Organizer or Admin role');
-                            }
-                        } else {
-                            console.log('No roles array found in user data or roles is not an array');
-                        }
-                    } catch (e) {
-                        console.error('Error parsing user data:', e);
+                console.log('Checking Auth availability...');
+                console.log('window.Auth available?', typeof window.Auth !== 'undefined');
+
+                // Check user roles using the Auth module (loaded via home.js)
+                if (typeof window.Auth !== 'undefined') {
+                    const isOrg = window.Auth.isOrganizer();
+                    const isAdm = window.Auth.isAdmin();
+                    console.log('isOrganizer:', isOrg);
+                    console.log('isAdmin:', isAdm);
+
+                    if (isOrg || isAdm) {
+                        console.log('✓ User has permission - SHOWING BUTTON');
+                        createBtn.classList.remove('hidden');
+                        createBtn.addEventListener('click', function() {
+                            window.location.href = '<?php echo getPagePath('home/create-tournament.php'); ?>';
+                        });
+                    } else {
+                        console.log('✗ User does not have required role');
                     }
                 } else {
-                    console.log('No user data found in localStorage');
+                    console.log('✗ Auth module NOT available');
                 }
+                console.log('=== SETUP CREATE BUTTON COMPLETE ===');
             }
 
             // Load and display tournaments

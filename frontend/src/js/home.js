@@ -2,6 +2,9 @@
 import * as Auth from "./core/auth.js";
 import { getViewPath } from "./pathHelper.js";
 
+// Expose Auth module globally for AJAX-loaded pages
+window.Auth = Auth;
+
 // DOM Elements
 let homeContent;
 let currentSection = "dashboard";
@@ -322,11 +325,25 @@ function setupTournaments() {
 
     function setupCreateButton() {
       const createBtn = document.getElementById("createTournamentBtn");
-      if (createBtn) {
+      if (!createBtn) {
+        console.log("Create tournament button not found");
+        return;
+      }
+
+      console.log("Checking user roles for create button...");
+      console.log("isOrganizer:", Auth.isOrganizer());
+      console.log("isAdmin:", Auth.isAdmin());
+
+      // Show button only for Organizers and Admins
+      if (Auth.isOrganizer() || Auth.isAdmin()) {
+        console.log("User has permission - showing Create Tournament button");
+        createBtn.classList.remove("hidden");
         createBtn.addEventListener("click", function () {
           window.location.href =
             "/GitHub Repos/Tournament-Management-System/frontend/app/views/pages/home/create-tournament.php";
         });
+      } else {
+        console.log("User does not have Organizer or Admin role");
       }
     }
 
