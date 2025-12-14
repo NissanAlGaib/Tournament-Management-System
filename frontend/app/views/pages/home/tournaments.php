@@ -60,6 +60,9 @@ require_once __DIR__ . '/../../../includes/header.php';
     </div>
 </div>
 
+<!-- Include Create Tournament Modal -->
+<?php require_once __DIR__ . '/../../components/create-tournament-modal.php'; ?>
+
 <style>
     .bg-grid-pattern {
         background-image:
@@ -170,7 +173,12 @@ require_once __DIR__ . '/../../../includes/header.php';
                         console.log('✓ User has permission - SHOWING BUTTON');
                         createBtn.classList.remove('hidden');
                         createBtn.addEventListener('click', function() {
-                            window.location.href = '<?php echo getPagePath('home/create-tournament.php'); ?>';
+                            // Open the modal instead of navigating
+                            if (typeof window.openCreateTournamentModal === 'function') {
+                                window.openCreateTournamentModal();
+                            } else {
+                                console.error('Modal function not found');
+                            }
                         });
                     } else {
                         console.log('✗ User does not have required role');
