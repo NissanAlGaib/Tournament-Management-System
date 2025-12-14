@@ -203,6 +203,106 @@ try {
                     "success" => true,
                     "leaderboard" => $leaderboard
                 ]);
+            } elseif ($action === 'organized-tournaments') {
+                // Get tournaments organized by current user
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                $query = "SELECT t.*, 
+                         COUNT(DISTINCT CASE WHEN tp.registration_status = 'confirmed' THEN tp.id END) as confirmed_count,
+                         COUNT(DISTINCT CASE WHEN tp.registration_status = 'pending' THEN tp.id END) as pending_count,
+                         COUNT(DISTINCT CASE WHEN tp.registration_status = 'rejected' THEN tp.id END) as rejected_count
+                         FROM tournaments t
+                         LEFT JOIN tournament_participants tp ON t.id = tp.tournament_id
+                         WHERE t.organizer_id = :user_id
+                         GROUP BY t.id
+                         ORDER BY t.created_at DESC";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':user_id', $user['user_id']);
+                $stmt->execute();
+                $tournaments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode([
+                    "success" => true,
+                    "tournaments" => $tournaments
+                ]);
+            } elseif ($action === 'tournament-participants' && isset($_GET['tournament_id'])) {
+                // Get participants for a tournament (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+                $tournamentId = $_GET['tournament_id'];
+
+                // Verify ownership or admin
+                $checkQuery = "SELECT organizer_id FROM tournaments WHERE id = :id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':id', $tournamentId);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to view participants for this tournament');
+                }
+
+                // Get participants with user details
+                $query = "SELECT tp.*, u.username, u.email,
+                         tt.team_name, tt.id as team_id
+                         FROM tournament_participants tp
+                         INNER JOIN users u ON tp.user_id = u.id
+                         LEFT JOIN tournament_team_members ttm ON tp.user_id = ttm.user_id
+                         LEFT JOIN tournament_teams tt ON ttm.team_id = tt.id AND tt.tournament_id = tp.tournament_id
+                         WHERE tp.tournament_id = :tournament_id
+                         ORDER BY tp.registration_status, tp.registered_at DESC";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':tournament_id', $tournamentId);
+                $stmt->execute();
+                $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode([
+                    "success" => true,
+                    "participants" => $participants
+                ]);
+            } elseif ($action === 'tournament-teams' && isset($_GET['tournament_id'])) {
+                // Get teams for a tournament (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+                $tournamentId = $_GET['tournament_id'];
+
+                // Verify ownership or admin
+                $checkQuery = "SELECT organizer_id FROM tournaments WHERE id = :id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':id', $tournamentId);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to view teams for this tournament');
+                }
+
+                // Get teams with member counts
+                $query = "SELECT tt.*, u.username as captain_name,
+                         COUNT(DISTINCT ttm.id) as member_count
+                         FROM tournament_teams tt
+                         INNER JOIN users u ON tt.captain_user_id = u.id
+                         LEFT JOIN tournament_team_members ttm ON tt.id = ttm.team_id
+                         WHERE tt.tournament_id = :tournament_id
+                         GROUP BY tt.id
+                         ORDER BY tt.created_at DESC";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':tournament_id', $tournamentId);
+                $stmt->execute();
+                $teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode([
+                    "success" => true,
+                    "teams" => $teams
+                ]);
             } else {
                 throw new Exception('Invalid action or missing parameters');
             }
@@ -830,6 +930,91 @@ try {
                 echo json_encode([
                     "success" => true,
                     "message" => "All notifications marked as read"
+                ]);
+            } elseif ($action === 'approve-participant') {
+                // Approve participant registration (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['participant_id'])) {
+                    throw new Exception('Participant ID is required');
+                }
+
+                // Get participant and tournament info
+                $checkQuery = "SELECT tp.*, t.organizer_id, t.max_participants, t.current_participants
+                              FROM tournament_participants tp
+                              INNER JOIN tournaments t ON tp.tournament_id = t.id
+                              WHERE tp.id = :participant_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':participant_id', $data['participant_id']);
+                $checkStmt->execute();
+                $participant = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$participant) {
+                    throw new Exception('Participant not found');
+                }
+
+                // Verify ownership or admin
+                $roles = array_column($user['roles'], 'role_name');
+                if ($participant['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                // Check if tournament is full
+                if ($participant['max_participants'] && $participant['current_participants'] >= $participant['max_participants']) {
+                    throw new Exception('Tournament is full');
+                }
+
+                // Update participant status to confirmed
+                $updateQuery = "UPDATE tournament_participants 
+                               SET registration_status = 'confirmed'
+                               WHERE id = :participant_id";
+                $updateStmt = $db->prepare($updateQuery);
+                $updateStmt->bindParam(':participant_id', $data['participant_id']);
+                $updateStmt->execute();
+
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Participant approved successfully"
+                ]);
+            } elseif ($action === 'reject-participant') {
+                // Reject participant registration (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['participant_id'])) {
+                    throw new Exception('Participant ID is required');
+                }
+
+                // Get participant and tournament info
+                $checkQuery = "SELECT tp.*, t.organizer_id
+                              FROM tournament_participants tp
+                              INNER JOIN tournaments t ON tp.tournament_id = t.id
+                              WHERE tp.id = :participant_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':participant_id', $data['participant_id']);
+                $checkStmt->execute();
+                $participant = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$participant) {
+                    throw new Exception('Participant not found');
+                }
+
+                // Verify ownership or admin
+                $roles = array_column($user['roles'], 'role_name');
+                if ($participant['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                // Update participant status to rejected
+                $updateQuery = "UPDATE tournament_participants 
+                               SET registration_status = 'rejected'
+                               WHERE id = :participant_id";
+                $updateStmt = $db->prepare($updateQuery);
+                $updateStmt->bindParam(':participant_id', $data['participant_id']);
+                $updateStmt->execute();
+
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Participant rejected successfully"
                 ]);
             } else {
                 throw new Exception('Invalid action');

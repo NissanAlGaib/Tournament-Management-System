@@ -42,6 +42,9 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("nav-team-management")
     ?.addEventListener("click", () => loadSection("team-management"));
   document
+    .getElementById("nav-manage-tournaments")
+    ?.addEventListener("click", () => loadSection("manage-tournaments"));
+  document
     .getElementById("nav-profile")
     ?.addEventListener("click", () => loadSection("profile"));
 
@@ -52,6 +55,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Set up notification bell
   setupNotificationCenter();
+
+  // Apply role-based visibility
+  Auth.applyRoleBasedVisibility();
 
   // Load dashboard by default
   loadSection("dashboard");

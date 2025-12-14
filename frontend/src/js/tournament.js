@@ -197,6 +197,117 @@ const TournamentAPI = {
       return { success: false, message: error.message };
     }
   },
+
+  /**
+   * Get organized tournaments (for organizers)
+   */
+  async getOrganizedTournaments() {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?action=organized-tournaments`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+        }
+      );
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching organized tournaments:", error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  /**
+   * Get tournament participants (for organizers)
+   */
+  async getTournamentParticipants(tournamentId) {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?action=tournament-participants&tournament_id=${tournamentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+        }
+      );
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching tournament participants:", error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  /**
+   * Get tournament teams (for organizers)
+   */
+  async getTournamentTeams(tournamentId) {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?action=tournament-teams&tournament_id=${tournamentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+        }
+      );
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching tournament teams:", error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  /**
+   * Approve participant
+   */
+  async approveParticipant(participantId) {
+    try {
+      const response = await fetch(this.baseURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+        body: JSON.stringify({
+          action: "approve-participant",
+          participant_id: participantId,
+        }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error approving participant:", error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  /**
+   * Reject participant
+   */
+  async rejectParticipant(participantId) {
+    try {
+      const response = await fetch(this.baseURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+        body: JSON.stringify({
+          action: "reject-participant",
+          participant_id: participantId,
+        }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error rejecting participant:", error);
+      return { success: false, message: error.message };
+    }
+  },
 };
 
 /**
