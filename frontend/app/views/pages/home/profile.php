@@ -1,3 +1,8 @@
+<?php
+require_once __DIR__ . '/../../../helpers/path_helper.php';
+$pageTitle = 'Profile';
+require_once __DIR__ . '/../../../includes/header.php';
+?>
 <div class="space-y-6">
     <!-- Profile Header -->
     <div class="relative">
@@ -295,3 +300,4 @@
     background-size: 20px 20px;
 }
 </style>
+<?php require_once __DIR__ . "/../../../includes/footer.php"; ?>

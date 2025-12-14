@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../helpers/path_helper.php';
+$pageTitle = 'Create Tournament';
+require_once __DIR__ . '/../../../includes/header.php';
 ?>
 <div class="space-y-6">
     <!-- Create Tournament Header -->
@@ -475,6 +477,7 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
             } else {
                 alert('Error creating tournament: ' + error.message);
             }
-        }
+            }
     });
 </script>
+<?php require_once __DIR__ . '/../../../includes/footer.php'; ?>
