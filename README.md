@@ -1,14 +1,27 @@
 # Tournament Management System
 
-A modern tournament management system with user authentication featuring a dark neon theme.
+A modern tournament management system with role-based access control, JWT authentication, and a dark neon theme.
 
 ## Features
 
-- **User Authentication**: Login and registration with secure password hashing
+### Authentication & Security
+- **JWT Authentication**: Secure token-based authentication with server-side session validation
+- **Role-Based Access Control (RBAC)**: Three-tier role system (Admin, Organizer, Player)
+- **Secure Password Storage**: Password hashing with bcrypt
+- **Session Management**: Server-side session tracking with IP and user agent validation
+- **Input Sanitization**: Protection against SQL injection and XSS attacks
+
+### User Roles
+- **Admin**: Full system access, role management, approve organizer requests
+- **Organizer**: Create and manage tournaments (requires admin approval)
+- **Player**: Default role for new users, participate in tournaments
+
+### UI/UX
 - **Dark Neon Theme**: Modern UI with cyan and purple gradients
+- **Role-Based UI**: Dynamic content visibility based on user permissions
+- **Responsive Design**: Built with Tailwind CSS and Bootstrap
+- **Admin Dashboard**: Complete role management interface
 - **AJAX-Powered**: Dynamic content loading without page refresh
-- **Responsive Design**: Built with Tailwind CSS
-- **Secure**: Password hashing with bcrypt, input sanitization
 
 ## Project Structure
 
@@ -16,30 +29,52 @@ A modern tournament management system with user authentication featuring a dark 
 .
 ├── backend/
 │   ├── api/
-│   │   ├── auth_api.php      # Authentication API endpoint
-│   │   └── database.php       # Database connection
-│   └── classes/
-│       └── Auth.class.php     # Authentication class
-└── frontend/
-    ├── app/
-    │   └── views/
-    │       ├── layout.php     # Main application layout
-    │       ├── login.php      # Login form view
-    │       └── register.php   # Registration form view
-    └── src/
-        ├── js/
-        │   └── main.js        # AJAX and form handling
-        ├── input.css          # Tailwind CSS input
-        └── output.css         # Compiled CSS
+│   │   ├── auth_api.php           # Authentication API with JWT
+│   │   ├── admin_api.php          # Admin role management API
+│   │   └── database.php           # Database connection
+│   ├── classes/
+│   │   ├── Auth.class.php         # Authentication with role methods
+│   │   ├── JWT.class.php          # JWT token generation/validation
+│   │   └── Session.class.php      # Server-side session management
+│   ├── middleware/
+│   │   └── auth_middleware.php    # JWT & role verification
+│   ├── database/
+│   │   └── setup_roles.sql        # Database migration script
+│   └── verify-setup.php           # Setup verification tool
+├── frontend/
+│   ├── app/views/pages/
+│   │   ├── auth/
+│   │   │   ├── login.php          # Login page
+│   │   │   └── register.php       # Registration page
+│   │   ├── home/
+│   │   │   ├── dashboard.php      # User dashboard
+│   │   │   ├── profile.php        # User profile
+│   │   │   ├── tournaments.php    # Tournament listing
+│   │   │   └── role-demo.php      # Role features demo
+│   │   └── admin/
+│   │       └── role-management.php # Admin role management
+│   └── src/
+│       ├── js/
+│       │   ├── core/
+│       │   │   └── auth.js        # Auth functions with JWT & roles
+│       │   ├── roleUtils.js       # Role-based UI utilities
+│       │   ├── admin-role-management.js # Admin panel logic
+│       │   └── main.js            # Main application logic
+│       ├── input.css              # Tailwind CSS input
+│       └── output.css             # Compiled CSS
+├── SETUP_GUIDE.md                 # Complete setup guide
+├── ROLE_REFERENCE.md              # Quick reference for developers
+└── IMPLEMENTATION_SUMMARY.md      # Implementation overview
 ```
 
-## Setup
+## Quick Start
 
 ### Prerequisites
 
 - PHP 8.0 or higher
-- MySQL database
+- MySQL/MariaDB
 - Node.js and npm (for Tailwind CSS)
+- XAMPP or similar local server
 
 ### Installation
 
@@ -50,20 +85,58 @@ A modern tournament management system with user authentication featuring a dark 
    ```
 
 2. **Set up the database**
-   - Create a MySQL database named `tournament_db`
-   - Create a `users` table:
-   ```sql
-   CREATE TABLE users (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       username VARCHAR(50) UNIQUE NOT NULL,
-       email VARCHAR(100) UNIQUE NOT NULL,
-       password VARCHAR(255) NOT NULL,
-       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-   );
+   ```bash
+   # Create database
+   mysql -u root -p -e "CREATE DATABASE tournament_db;"
+   
+   # Run migration script
+   mysql -u root -p tournament_db < backend/database/setup_roles.sql
+   ```
+   
+   Or use phpMyAdmin:
+   - Create database: `tournament_db`
+   - Import: `backend/database/setup_roles.sql`
+
+3. **Configure database connection** (if needed)
+   - Update `backend/api/database.php` with your credentials
+   - Default: `root` user with no password
+
+4. **Install frontend dependencies**
+   ```bash
+   cd frontend
+   npm install
+   npm run build  # Compile Tailwind CSS
    ```
 
-3. **Configure database connection**
-   - Update `backend/api/database.php` with your database credentials if needed
+5. **Start your server**
+   - Start XAMPP (Apache + MySQL)
+   - Access: `http://localhost/Tournament-Management-System/frontend/app/views/pages/auth/login.php`
+
+6. **Create first admin user**
+   ```bash
+   # 1. Register a user through the app
+   # 2. Make them admin:
+   mysql -u root -p tournament_db -e "INSERT INTO user_roles (user_id, role_id) VALUES (1, 1);"
+   ```
+
+7. **Verify setup**
+   - Visit: `http://localhost/Tournament-Management-System/backend/verify-setup.php`
+   - Check that all tables exist and files are in place
+   - Delete `verify-setup.php` after verification
+
+### First Steps
+
+1. **Register** a new user (auto-assigned Player role)
+2. **Login** and explore the dashboard
+3. **Make yourself admin** (see step 6 above)
+4. **Access admin panel**: `/frontend/app/views/pages/admin/role-management.php`
+5. **Try role features**: `/frontend/app/views/pages/home/role-demo.php`
+
+## Documentation
+
+- **📘 [Setup Guide](SETUP_GUIDE.md)** - Detailed installation and configuration
+- **📗 [Quick Reference](ROLE_REFERENCE.md)** - Code snippets and API examples
+- **📙 [Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Overview of what's been built
 
 4. **Install frontend dependencies**
    ```bash
@@ -103,50 +176,146 @@ A modern tournament management system with user authentication featuring a dark 
 3. Click "Login" to access your account
 4. Upon successful login, you'll see a welcome message with your user details
 
+## Role System
+
+### User Roles
+
+| Role | ID | Description | Access Level |
+|------|----|-----------|----|
+| **Admin** | 1 | System administrator | Full access, role management |
+| **Player** | 2 | Regular user | Default role, participate in tournaments |
+| **Organizer** | 3 | Tournament organizer | Create/manage tournaments (requires approval) |
+
+### Role Assignment Flow
+
+1. **New User Registration** → Auto-assigned **Player** role
+2. **Player requests Organizer role** → Creates pending request
+3. **Admin reviews request** → Approves or rejects
+4. **If approved** → User gains **Organizer** role
+5. **Admin can manually** → Assign/remove any role
+
+### Frontend Usage
+
+```javascript
+import { hasRole, isAdmin, isOrganizer } from './core/auth.js';
+
+// Check roles
+if (isAdmin()) {
+    // Admin-only features
+}
+
+if (hasRole('Organizer')) {
+    // Organizer features
+}
+```
+
+### HTML Role Attributes
+
+```html
+<!-- Admin only -->
+<div data-role="Admin">Admin panel</div>
+
+<!-- Multiple roles -->
+<div data-roles="Admin,Organizer">Create Tournament</div>
+
+<!-- Role badges -->
+<div id="user-role-badges"></div>
+```
+
+### Backend Protection
+
+```php
+require_once '../middleware/auth_middleware.php';
+
+$auth = getAuthMiddleware();
+
+// Require admin
+$user = $auth->requireRole('Admin');
+
+// Require one of multiple roles
+$user = $auth->requireRole(['Admin', 'Organizer']);
+```
+
 ## API Endpoints
 
-### Authentication API (`backend/api/auth_api.php`)
+### Authentication (`/backend/api/auth_api.php`)
 
-#### Register User
-```http
-POST /backend/api/auth_api.php
-Content-Type: application/json
-
+**Register User**
+```json
+POST /auth_api.php
 {
   "action": "register",
-  "username": "johndoe",
+  "username": "john_doe",
   "email": "john@example.com",
-  "password": "securepassword"
+  "password": "password123"
 }
-```
 
-**Response:**
-```json
+Response:
 {
   "success": true,
-  "message": "User registered successfully"
-}
-```
-
-#### Login User
-```http
-POST /backend/api/auth_api.php
-Content-Type: application/json
-
-{
-  "action": "login",
-  "username": "johndoe",
-  "password": "securepassword"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Login successful",
+  "token": "eyJ0eXAiOiJKV1QiLCJh...",
   "user": {
     "id": 1,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "roles": [
+      {"id": 2, "role_name": "Player", "description": "Regular player"}
+    ]
+  }
+}
+```
+
+**Login**
+```json
+POST /auth_api.php
+{
+  "action": "login",
+  "username": "john_doe",
+  "password": "password123"
+}
+
+Response: Same as register
+```
+
+**Request Organizer Role**
+```json
+POST /auth_api.php
+Headers: Authorization: Bearer <token>
+{
+  "action": "request-organizer-role",
+  "reason": "I want to organize tournaments"
+}
+```
+
+### Admin API (`/backend/api/admin_api.php`)
+*Requires Admin role*
+
+**Get Pending Requests**
+```
+GET /admin_api.php?action=pending-requests
+Headers: Authorization: Bearer <token>
+```
+
+**Approve Request**
+```json
+POST /admin_api.php
+Headers: Authorization: Bearer <token>
+{
+  "action": "approve-request",
+  "request_id": 1
+}
+```
+
+**Assign Role**
+```json
+POST /admin_api.php
+Headers: Authorization: Bearer <token>
+{
+  "action": "assign-role",
+  "user_id": 5,
+  "role_id": 3
+}
+```
     "username": "johndoe",
     "email": "john@example.com"
   }
