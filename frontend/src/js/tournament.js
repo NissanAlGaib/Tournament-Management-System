@@ -213,9 +213,9 @@ const TournamentUI = {
     }`;
 
     return `
-            <div class="relative group">
+            <div class="relative group cursor-pointer" onclick="TournamentUI.navigateToDetails(${tournament.id})">
                 <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl opacity-50 group-hover:opacity-75 blur transition duration-300"></div>
-                <div class="relative bg-gray-800 rounded-2xl border border-cyan-500/30 overflow-hidden">
+                <div class="relative bg-gray-800 rounded-2xl border border-cyan-500/30 overflow-hidden hover:border-cyan-400/50 transition-all">
                     <div class="relative h-40 bg-gradient-to-br from-cyan-600 via-purple-600 to-cyan-700 flex items-center justify-center">
                         <div class="absolute inset-0 bg-grid-pattern opacity-10"></div>
                         <svg class="w-20 h-20 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,10 +310,25 @@ const TournamentUI = {
   },
 
   /**
+   * Navigate to tournament details page
+   */
+  navigateToDetails(tournamentId) {
+    // Check if we're in the AJAX navigation context (home.js)
+    if (typeof window.navigateTo === 'function') {
+      // Use the AJAX navigation system
+      window.currentTournamentId = tournamentId;
+      window.navigateTo('tournament-details.php');
+    } else {
+      // Fallback to direct navigation
+      window.location.href = `tournament-details.php?id=${tournamentId}`;
+    }
+  },
+
+  /**
    * View tournament details (placeholder - to be implemented)
    */
   viewTournament(id) {
-    window.location.href = `/frontend/app/views/pages/home/tournament-details.php?id=${id}`;
+    this.navigateToDetails(id);
   },
 
   /**

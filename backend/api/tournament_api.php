@@ -311,19 +311,137 @@ try {
                     throw new Exception('Tournament is full');
                 }
 
-                // Register participant
-                $registerQuery = "INSERT INTO tournament_participants 
-                                 (tournament_id, user_id, registration_status, payment_status)
-                                 VALUES (:tournament_id, :user_id, 'confirmed', 'pending')";
-                $registerStmt = $db->prepare($registerQuery);
-                $userId = $user['user_id'];
-                $registerStmt->bindParam(':tournament_id', $tournamentId);
-                $registerStmt->bindParam(':user_id', $userId);
-                $registerStmt->execute();
+                $db->beginTransaction();
+                
+                try {
+                    $teamId = null;
+                    
+                    // Handle team-based registration
+                    if (isset($data['create_team']) && $data['create_team']) {
+                        // Create new team
+                        if (!isset($data['team_name'])) {
+                            throw new Exception('Team name is required');
+                        }
+                        
+                        $teamQuery = "INSERT INTO tournament_teams 
+                                     (tournament_id, team_name, team_tag, captain_user_id, team_status)
+                                     VALUES (:tournament_id, :team_name, :team_tag, :captain_id, 'active')";
+                        $teamStmt = $db->prepare($teamQuery);
+                        $teamTag = $data['team_tag'] ?? null;
+                        $teamStmt->bindParam(':tournament_id', $tournamentId);
+                        $teamStmt->bindParam(':team_name', $data['team_name']);
+                        $teamStmt->bindParam(':team_tag', $teamTag);
+                        $teamStmt->bindParam(':captain_id', $userId);
+                        $teamStmt->execute();
+                        $teamId = $db->lastInsertId();
+                        
+                        // Add captain as team member
+                        $memberQuery = "INSERT INTO tournament_team_members 
+                                       (team_id, user_id, role) VALUES (:team_id, :user_id, 'captain')";
+                        $memberStmt = $db->prepare($memberQuery);
+                        $memberStmt->bindParam(':team_id', $teamId);
+                        $memberStmt->bindParam(':user_id', $userId);
+                        $memberStmt->execute();
+                    } elseif (isset($data['team_id'])) {
+                        // Join existing team
+                        $teamId = $data['team_id'];
+                    }
 
+                    // Register participant
+                    $notes = $data['notes'] ?? null;
+                    $registerQuery = "INSERT INTO tournament_participants 
+                                     (tournament_id, user_id, registration_status, payment_status, registration_notes)
+                                     VALUES (:tournament_id, :user_id, 'confirmed', 'pending', :notes)";
+                    $registerStmt = $db->prepare($registerQuery);
+                    $registerStmt->bindParam(':tournament_id', $tournamentId);
+                    $registerStmt->bindParam(':user_id', $userId);
+                    $registerStmt->bindParam(':notes', $notes);
+                    $registerStmt->execute();
+                    
+                    $db->commit();
+
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "Successfully registered for tournament",
+                        "team_id" => $teamId
+                    ]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
+            } elseif ($action === 'invite_to_team') {
+                // Invite player to team
+                $user = $authMiddleware->requireAuth();
+                
+                if (!isset($data['team_id']) || !isset($data['username'])) {
+                    throw new Exception('Team ID and username are required');
+                }
+                
+                // Verify team exists and user is captain
+                $teamQuery = "SELECT * FROM tournament_teams WHERE id = :team_id AND captain_user_id = :user_id";
+                $teamStmt = $db->prepare($teamQuery);
+                $teamStmt->bindParam(':team_id', $data['team_id']);
+                $teamStmt->bindParam(':user_id', $user['user_id']);
+                $teamStmt->execute();
+                $team = $teamStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$team) {
+                    throw new Exception('Team not found or you are not the captain');
+                }
+                
+                // Find user by username
+                $userQuery = "SELECT id FROM users WHERE username = :username";
+                $userStmt = $db->prepare($userQuery);
+                $userStmt->bindParam(':username', $data['username']);
+                $userStmt->execute();
+                $invitedUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$invitedUser) {
+                    throw new Exception('User not found');
+                }
+                
+                // Check if user is already in team
+                $checkQuery = "SELECT * FROM tournament_team_members WHERE team_id = :team_id AND user_id = :user_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':team_id', $data['team_id']);
+                $checkStmt->bindParam(':user_id', $invitedUser['id']);
+                $checkStmt->execute();
+                
+                if ($checkStmt->rowCount() > 0) {
+                    throw new Exception('User is already in this team');
+                }
+                
+                // Add to team
+                $role = $data['role'] ?? 'member';
+                $addQuery = "INSERT INTO tournament_team_members (team_id, user_id, role) 
+                            VALUES (:team_id, :user_id, :role)";
+                $addStmt = $db->prepare($addQuery);
+                $addStmt->bindParam(':team_id', $data['team_id']);
+                $addStmt->bindParam(':user_id', $invitedUser['id']);
+                $addStmt->bindParam(':role', $role);
+                $addStmt->execute();
+                
+                // Register user for tournament if not already registered
+                $checkRegQuery = "SELECT * FROM tournament_participants 
+                                 WHERE tournament_id = :tournament_id AND user_id = :user_id";
+                $checkRegStmt = $db->prepare($checkRegQuery);
+                $checkRegStmt->bindParam(':tournament_id', $team['tournament_id']);
+                $checkRegStmt->bindParam(':user_id', $invitedUser['id']);
+                $checkRegStmt->execute();
+                
+                if ($checkRegStmt->rowCount() == 0) {
+                    $regQuery = "INSERT INTO tournament_participants 
+                                (tournament_id, user_id, registration_status, payment_status)
+                                VALUES (:tournament_id, :user_id, 'confirmed', 'pending')";
+                    $regStmt = $db->prepare($regQuery);
+                    $regStmt->bindParam(':tournament_id', $team['tournament_id']);
+                    $regStmt->bindParam(':user_id', $invitedUser['id']);
+                    $regStmt->execute();
+                }
+                
                 echo json_encode([
                     "success" => true,
-                    "message" => "Successfully registered for tournament"
+                    "message" => "Player added to team successfully"
                 ]);
             } elseif ($action === 'update-status') {
                 // Update tournament status (Organizer/Admin only)
