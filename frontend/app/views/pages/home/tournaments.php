@@ -145,12 +145,48 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
 
             // Setup create tournament button
             function setupCreateButton() {
+                console.log('Setting up create button');
                 const createBtn = document.getElementById('createTournamentBtn');
-                if (createBtn) {
-                    createBtn.addEventListener('click', function() {
-                        window.location.href = '/frontend/app/views/pages/home/create-tournament.php';
-                    });
+                if (!createBtn) {
+                    console.log('Create button not found');
+                    return;
                 }
+
+                // Check user roles and show button if user is Organizer or Admin
+                const userDataStr = localStorage.getItem('user');
+                console.log('User data from localStorage:', userDataStr);
+                
+                if (userDataStr) {
+                    try {
+                        const userData = JSON.parse(userDataStr);
+                        console.log('Parsed user data:', userData);
+                        
+                        if (userData.roles && Array.isArray(userData.roles)) {
+                            const hasPermission = userData.roles.some(role => 
+                                role.role_name === 'Organizer' || role.role_name === 'Admin'
+                            );
+                            
+                            console.log('User roles:', userData.roles.map(r => r.role_name));
+                            console.log('Has permission to create tournament:', hasPermission);
+                            
+                            if (hasPermission) {
+                                createBtn.classList.remove('hidden');
+                                console.log('Create button shown');
+                            } else {
+                                console.log('User does not have Organizer or Admin role');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error parsing user data:', e);
+                    }
+                } else {
+                    console.log('No user data found in localStorage');
+                }
+
+                // Add click handler
+                createBtn.addEventListener('click', function() {
+                    window.location.href = '<?php echo getPagePath('home/create-tournament.php'); ?>';
+                });
             }
 
             // Load and display tournaments
