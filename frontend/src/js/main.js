@@ -84,7 +84,7 @@ function setupLoginForm() {
                 setTimeout(() => {
                     // Check if user is admin and redirect to admin panel
                     if (Auth.isAdmin()) {
-                        window.location.href = 'pages/admin/role-management.php';
+                        window.location.href = 'pages/admin/dashboard.php';
                     } else {
                         window.location.href = 'pages/home/index.php';
                     }

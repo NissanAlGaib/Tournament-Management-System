@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Role Management - Tournament Management System</title>
+    <title>System Activity - Tournament Management System</title>
     <link rel="stylesheet" href="../../../src/output.css">
 </head>
 <body class="bg-gray-900 min-h-screen">
@@ -38,7 +38,7 @@
                                 Users
                             </span>
                         </a>
-                        <a href="role-management.php" class="px-4 py-2 bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 rounded-lg">
+                        <a href="role-management.php" class="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
@@ -46,7 +46,7 @@
                                 Roles
                             </span>
                         </a>
-                        <a href="activity.php" class="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors">
+                        <a href="activity.php" class="px-4 py-2 bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 rounded-lg">
                             <span class="flex items-center">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
@@ -72,73 +72,53 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Page Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-black text-white mb-2">Role Management</h1>
-            <p class="text-gray-400">Manage user roles and approve role requests</p>
+            <h1 class="text-3xl font-black text-white mb-2">System Activity</h1>
+            <p class="text-gray-400">Monitor system activity and user sessions</p>
         </div>
 
-        <!-- Alert Container -->
-        <div id="alert-container" class="mb-6"></div>
-
-        <!-- Pending Role Requests Section -->
-        <div class="relative group mb-8">
-            <div class="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-2xl opacity-30 blur"></div>
-            <div class="relative bg-gray-800 rounded-2xl border border-yellow-500/30 overflow-hidden">
-                <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-white flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Pending Role Requests
-                        <span class="ml-3 px-2.5 py-1 bg-red-500/20 text-red-400 text-sm font-bold rounded-full border border-red-500/50" id="pending-count">0</span>
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div id="pending-requests-container">
-                        <div class="text-center text-gray-400 py-12">
-                            <svg class="w-12 h-12 mx-auto mb-3 animate-spin text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Activity Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Active Sessions -->
+            <div class="relative group">
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-cyan-600 rounded-2xl opacity-30 blur"></div>
+                <div class="relative bg-gray-800 rounded-2xl border border-green-500/30 overflow-hidden">
+                    <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4 border-b border-gray-700">
+                        <h2 class="text-xl font-bold text-white flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Active Sessions
+                        </h2>
+                    </div>
+                    <div class="p-6" id="active-sessions-container">
+                        <div class="text-center text-gray-400 py-8">
+                            <svg class="w-12 h-12 mx-auto mb-3 animate-spin text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
-                            <p class="text-lg">Loading pending requests...</p>
+                            <p>Loading active sessions...</p>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- All Users Section -->
-        <div class="relative group">
-            <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl opacity-30 blur"></div>
-            <div class="relative bg-gray-800 rounded-2xl border border-cyan-500/30 overflow-hidden">
-                <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4 border-b border-gray-700">
-                    <h2 class="text-xl font-bold text-white flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                        All Users & Roles
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <!-- Search Bar -->
-                    <div class="mb-6">
-                        <div class="relative">
-                            <input 
-                                type="text" 
-                                id="user-search" 
-                                placeholder="Search users by name or email..."
-                                class="w-full px-4 py-3 pl-12 bg-gray-900 border-2 border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                            >
-                            <svg class="w-5 h-5 text-gray-500 absolute left-4 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            <!-- Recent Activity Log -->
+            <div class="relative group">
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl opacity-30 blur"></div>
+                <div class="relative bg-gray-800 rounded-2xl border border-purple-500/30 overflow-hidden">
+                    <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4 border-b border-gray-700">
+                        <h2 class="text-xl font-bold text-white flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                             </svg>
-                        </div>
+                            Activity Log
+                        </h2>
                     </div>
-                    <!-- Users Container -->
-                    <div id="users-container">
-                        <div class="text-center text-gray-400 py-12">
-                            <svg class="w-12 h-12 mx-auto mb-3 animate-spin text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-6" id="activity-log-container">
+                        <div class="text-center text-gray-400 py-8">
+                            <svg class="w-12 h-12 mx-auto mb-3 animate-spin text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
-                            <p class="text-lg">Loading users...</p>
+                            <p>Loading activity log...</p>
                         </div>
                     </div>
                 </div>
@@ -146,9 +126,6 @@
         </div>
     </main>
 
-    <!-- Modal Container -->
-    <div id="modal-container"></div>
-
-    <script type="module" src="../../../src/js/admin-role-management.js"></script>
+    <script type="module" src="../../../src/js/admin-activity.js"></script>
 </body>
 </html>
