@@ -80,9 +80,14 @@ function setupLoginForm() {
                 successDiv.textContent = data.message;
                 successDiv.classList.remove('hidden');
                 
-                // Redirect to homepage after successful login
+                // Redirect based on user role after successful login
                 setTimeout(() => {
-                    window.location.href = 'pages/home/index.php';
+                    // Check if user is admin and redirect to admin panel
+                    if (Auth.isAdmin()) {
+                        window.location.href = 'pages/admin/role-management.php';
+                    } else {
+                        window.location.href = 'pages/home/index.php';
+                    }
                 }, 1000);
             } else {
                 errorDiv.textContent = data.message;

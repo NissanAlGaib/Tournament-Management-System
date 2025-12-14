@@ -1,8 +1,30 @@
 // Authentication API Module
 // Handles all authentication-related API calls with JWT
 
-const AUTH_API_URL = '../../../backend/api/auth_api.php';
-const ADMIN_API_URL = '../../../backend/api/admin_api.php';
+// Get the base path for API calls by determining how many levels up we need to go
+function getApiBasePath() {
+    const path = window.location.pathname;
+    // Count the directory depth from the project root
+    // If we're in /frontend/app/views/pages/home/, we need to go up 5 levels
+    // If we're in /frontend/app/views/, we need to go up 3 levels
+    const segments = path.split('/').filter(s => s && s !== 'index.php' && s !== 'layout.php' && !s.endsWith('.php'));
+    
+    // Find how many directories deep we are from the frontend folder
+    const frontendIndex = segments.indexOf('frontend');
+    if (frontendIndex === -1) {
+        // Fallback: try to construct from known structure
+        return '../../../backend/api/';
+    }
+    
+    // Calculate levels up from current location to project root, then down to backend/api
+    const levelsFromFrontend = segments.length - frontendIndex - 1;
+    const levelsUp = levelsFromFrontend + 2; // +2 to get from frontend/app to root
+    return '../'.repeat(levelsUp) + 'backend/api/';
+}
+
+const API_BASE_PATH = getApiBasePath();
+const AUTH_API_URL = API_BASE_PATH + 'auth_api.php';
+const ADMIN_API_URL = API_BASE_PATH + 'admin_api.php';
 
 /**
  * Make authenticated API request with JWT token

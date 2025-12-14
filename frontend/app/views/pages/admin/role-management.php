@@ -124,7 +124,7 @@
     </main>
 
     <!-- Modal Container -->
-    <div id="modal-container" class="fixed inset-0 z-50"></div>
+    <div id="modal-container"></div>
 
     <script type="module" src="../../../src/js/admin-role-management.js"></script>
 </body>
