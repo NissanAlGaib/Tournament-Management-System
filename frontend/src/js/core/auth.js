@@ -1,25 +1,27 @@
 // Authentication API Module
 // Handles all authentication-related API calls with JWT
 
-// Get the base path for API calls by determining how many levels up we need to go
+// Get the base path for API calls
+// Extract the project base path and construct API URLs
 function getApiBasePath() {
-    const path = window.location.pathname;
-    // Count the directory depth from the project root
-    // If we're in /frontend/app/views/pages/home/, we need to go up 5 levels
-    // If we're in /frontend/app/views/, we need to go up 3 levels
-    const segments = path.split('/').filter(s => s && s !== 'index.php' && s !== 'layout.php' && !s.endsWith('.php'));
+    const pathname = window.location.pathname;
     
-    // Find how many directories deep we are from the frontend folder
-    const frontendIndex = segments.indexOf('frontend');
-    if (frontendIndex === -1) {
-        // Fallback: try to construct from known structure
-        return '../../../backend/api/';
+    // Find the project root by looking for 'frontend' in the path
+    // Project structure: /[optional-base]/frontend/app/views/...
+    // Backend is at: /[optional-base]/backend/api/
+    
+    const frontendIndex = pathname.indexOf('/frontend/');
+    if (frontendIndex !== -1) {
+        // Extract base path before /frontend/
+        const basePath = pathname.substring(0, frontendIndex);
+        return basePath + '/backend/api/';
     }
     
-    // Calculate levels up from current location to project root, then down to backend/api
-    const levelsFromFrontend = segments.length - frontendIndex - 1;
-    const levelsUp = levelsFromFrontend + 2; // +2 to get from frontend/app to root
-    return '../'.repeat(levelsUp) + 'backend/api/';
+    // Fallback to relative path if frontend not found
+    // This assumes we're in frontend directory somewhere
+    const currentDir = pathname.substring(0, pathname.lastIndexOf('/'));
+    const depth = currentDir.split('/').filter(s => s).length;
+    return '../'.repeat(depth) + 'backend/api/';
 }
 
 const API_BASE_PATH = getApiBasePath();
