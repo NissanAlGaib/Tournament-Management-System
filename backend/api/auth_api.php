@@ -28,7 +28,7 @@ switch ($method) {
 
         if (!isset($data['action'])) {
             http_response_code(400);
-            echo json_encode(["message" => "Action parameter is required"]);
+            echo json_encode(["success" => false, "message" => "Action parameter is required"]);
             exit();
         }
 
@@ -37,7 +37,7 @@ switch ($method) {
         if ($action === 'register') {
             if (!isset($data['username']) || !isset($data['email']) || !isset($data['password'])) {
                 http_response_code(400);
-                echo json_encode(["message" => "Incomplete data. Username, email, and password are required."]);
+                echo json_encode(["success" => false, "message" => "Incomplete data. Username, email, and password are required."]);
                 exit();
             }
 
@@ -55,7 +55,7 @@ switch ($method) {
         } elseif ($action === 'login') {
             if (!isset($data['username']) || !isset($data['password'])) {
                 http_response_code(400);
-                echo json_encode(["message" => "Username and password are required."]);
+                echo json_encode(["success" => false, "message" => "Username and password are required."]);
                 exit();
             }
 
@@ -79,7 +79,7 @@ switch ($method) {
             }
         } else {
             http_response_code(400);
-            echo json_encode(["message" => "Invalid action"]);
+            echo json_encode(["success" => false, "message" => "Invalid action"]);
         }
         break;
 }

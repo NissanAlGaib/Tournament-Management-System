@@ -85,7 +85,9 @@ function setupLoginForm() {
                 successDiv.textContent = data.message;
                 successDiv.classList.remove('hidden');
                 
-                // Store user data (in a real app, use secure session management)
+                // NOTE: Storing user data in localStorage is for demonstration only
+                // In production, use secure httpOnly cookies or server-side sessions
+                // to prevent XSS attacks and ensure proper security
                 localStorage.setItem('user', JSON.stringify(data.user));
                 
                 // Redirect or update UI after successful login
