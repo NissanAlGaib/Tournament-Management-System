@@ -26,22 +26,60 @@ switch ($method) {
     case "POST":
         $data = json_decode(file_get_contents("php://input"), true);
 
-        if (!isset($data->username) || !isset($data->email) || !isset($data->password)) {
+        if (!isset($data['action'])) {
             http_response_code(400);
-            echo json_encode(["message" => "Incomplete data. Username, email, and password are required."]);
+            echo json_encode(["message" => "Action parameter is required"]);
             exit();
         }
 
-        $authentication->username = $data->username;
-        $authentication->email = $data->email;
-        $authentication->password = $data->password;
+        $action = $data['action'];
 
-        if ($authentication->registerUser()) {
-            http_response_code(201);
-            echo json_encode(["message" => "User registered successfully"]);
+        if ($action === 'register') {
+            if (!isset($data['username']) || !isset($data['email']) || !isset($data['password'])) {
+                http_response_code(400);
+                echo json_encode(["message" => "Incomplete data. Username, email, and password are required."]);
+                exit();
+            }
+
+            $authentication->username = $data['username'];
+            $authentication->email = $data['email'];
+            $authentication->password = $data['password'];
+
+            if ($authentication->registerUser()) {
+                http_response_code(201);
+                echo json_encode(["success" => true, "message" => "User registered successfully"]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["success" => false, "message" => "User registration failed"]);
+            }
+        } elseif ($action === 'login') {
+            if (!isset($data['username']) || !isset($data['password'])) {
+                http_response_code(400);
+                echo json_encode(["message" => "Username and password are required."]);
+                exit();
+            }
+
+            $authentication->username = $data['username'];
+            $authentication->password = $data['password'];
+
+            if ($authentication->loginUser()) {
+                http_response_code(200);
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Login successful",
+                    "user" => [
+                        "id" => $authentication->id,
+                        "username" => $authentication->username,
+                        "email" => $authentication->email
+                    ]
+                ]);
+            } else {
+                http_response_code(401);
+                echo json_encode(["success" => false, "message" => "Invalid username or password"]);
+            }
         } else {
-            http_response_code(500);
-            echo json_encode(["message" => "User registration failed"]);
+            http_response_code(400);
+            echo json_encode(["message" => "Invalid action"]);
         }
         break;
 }

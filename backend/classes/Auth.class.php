@@ -33,4 +33,27 @@
             }
             return false;
         }
+
+        public function loginUser()
+        {
+            $query = "SELECT id, username, email, password FROM " . $this->table_name . " WHERE username = :username LIMIT 1";
+
+            $stmt = $this->conn->prepare($query);
+
+            $this->username = htmlspecialchars(strip_tags($this->username));
+
+            $stmt->bindParam(":username", $this->username);
+
+            $stmt->execute();
+
+            if ($stmt->rowCount() > 0) {
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (password_verify($this->password, $row['password'])) {
+                    $this->id = $row['id'];
+                    $this->email = $row['email'];
+                    return true;
+                }
+            }
+            return false;
+        }
     }
