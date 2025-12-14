@@ -39,6 +39,9 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("nav-my-tournaments")
     ?.addEventListener("click", () => loadSection("my-tournaments"));
   document
+    .getElementById("nav-team-management")
+    ?.addEventListener("click", () => loadSection("team-management"));
+  document
     .getElementById("nav-profile")
     ?.addEventListener("click", () => loadSection("profile"));
 
@@ -46,6 +49,9 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("sidebar-logout-btn")
     ?.addEventListener("click", handleLogout);
+
+  // Set up notification bell
+  setupNotificationCenter();
 
   // Load dashboard by default
   loadSection("dashboard");
@@ -78,6 +84,8 @@ function loadSection(sectionName) {
         setupTournaments();
       } else if (sectionName === "my-tournaments") {
         setTimeout(() => setupMyTournaments(), 10);
+      } else if (sectionName === "team-management") {
+        setTimeout(() => setupTeamManagement(), 10);
       } else if (sectionName === "tournament-details") {
         setTimeout(() => setupTournamentDetails(), 10);
       }
@@ -99,6 +107,7 @@ function updateActiveNav(sectionName) {
     "nav-dashboard",
     "nav-tournaments",
     "nav-my-tournaments",
+    "nav-team-management",
     "nav-profile",
   ];
   navButtons.forEach((id) => {
@@ -423,23 +432,28 @@ window.filterMyTournaments = function (filter) {
 };
 
 window.withdrawFromTournament = async function (tournamentId, tournamentName) {
-  if (!confirm(`Are you sure you want to withdraw from "${tournamentName}"?\n\nThis action cannot be undone.`)) {
+  if (
+    !confirm(
+      `Are you sure you want to withdraw from "${tournamentName}"?\n\nThis action cannot be undone.`
+    )
+  ) {
     return;
   }
 
   try {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem("auth_token");
     const headers = {
-      'Content-Type': 'application/json'
+      "Content-Type": "application/json",
     };
-    
+
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
-    if (typeof window.TournamentAPI === 'undefined') {
+    if (typeof window.TournamentAPI === "undefined") {
       window.TournamentAPI = {
-        baseURL: '/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php'
+        baseURL:
+          "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
       };
     }
 
@@ -745,7 +759,10 @@ function setupMyTournaments() {
 
 // Setup tournament details section
 function setupTournamentDetails() {
-  console.log("Setting up tournament details section for ID:", currentTournamentId);
+  console.log(
+    "Setting up tournament details section for ID:",
+    currentTournamentId
+  );
 
   if (!currentTournamentId) {
     console.error("No tournament ID specified");
@@ -761,9 +778,10 @@ function setupTournamentDetails() {
   }
 
   // Ensure TournamentAPI is available
-  if (typeof window.TournamentAPI === 'undefined') {
+  if (typeof window.TournamentAPI === "undefined") {
     window.TournamentAPI = {
-      baseURL: '/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php'
+      baseURL:
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
     };
   }
 
@@ -779,20 +797,20 @@ function setupTournamentDetails() {
     if (contentDiv) contentDiv.classList.add("hidden");
 
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem("auth_token");
       const headers = {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       };
-      
+
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers["Authorization"] = `Bearer ${token}`;
       }
 
       const response = await fetch(
         window.TournamentAPI.baseURL + `?action=tournament&id=${tournamentId}`,
         {
           credentials: "include",
-          headers: headers
+          headers: headers,
         }
       );
 
@@ -855,25 +873,584 @@ function setupTournamentDetails() {
             <div class="space-y-3 text-gray-400">
               <div class="flex justify-between">
                 <span>Start Date:</span>
-                <span class="text-white">${new Date(tournament.start_date).toLocaleString()}</span>
+                <span class="text-white">${new Date(
+                  tournament.start_date
+                ).toLocaleString()}</span>
               </div>
               <div class="flex justify-between">
                 <span>End Date:</span>
-                <span class="text-white">${new Date(tournament.end_date).toLocaleString()}</span>
+                <span class="text-white">${new Date(
+                  tournament.end_date
+                ).toLocaleString()}</span>
               </div>
               <div class="flex justify-between">
                 <span>Participants:</span>
-                <span class="text-white">${tournament.participants_count || 0} / ${tournament.max_participants}</span>
+                <span class="text-white">${
+                  tournament.participants_count || 0
+                } / ${tournament.max_participants}</span>
               </div>
             </div>
           </div>
 
           <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
             <h3 class="text-lg font-bold text-white mb-4">Description</h3>
-            <p class="text-gray-400">${tournament.description || 'No description available.'}</p>
+            <p class="text-gray-400">${
+              tournament.description || "No description available."
+            }</p>
           </div>
         </div>
       </div>
     `;
   }
+}
+
+// Setup team management section
+function setupTeamManagement() {
+  console.log("Setting up team management section...");
+
+  // Ensure TournamentAPI is available
+  if (typeof window.TournamentAPI === "undefined") {
+    window.TournamentAPI = {
+      baseURL:
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+    };
+  }
+
+  let currentTeamId = null;
+
+  // Global functions for team management
+  window.openAddMemberModal = function (teamId) {
+    currentTeamId = teamId;
+    document.getElementById("addMemberModal").classList.remove("hidden");
+    document.getElementById("newMemberUsername").value = "";
+  };
+
+  window.closeAddMemberModal = function () {
+    document.getElementById("addMemberModal").classList.add("hidden");
+    currentTeamId = null;
+  };
+
+  window.confirmAddMember = async function () {
+    const username = document.getElementById("newMemberUsername").value.trim();
+
+    if (!username) {
+      alert("Please enter a username");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(window.TournamentAPI.baseURL, {
+        method: "POST",
+        headers: headers,
+        credentials: "include",
+        body: JSON.stringify({
+          action: "add-team-member",
+          team_id: currentTeamId,
+          username: username,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Member added successfully");
+        window.closeAddMemberModal();
+        loadSection("team-management");
+      } else {
+        alert("Error: " + (data.message || "Failed to add member"));
+      }
+    } catch (error) {
+      console.error("Error adding member:", error);
+      alert("Error adding member. Please try again.");
+    }
+  };
+
+  window.removeMember = async function (teamId, memberId, username) {
+    if (
+      !confirm(`Are you sure you want to remove ${username} from the team?`)
+    ) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(window.TournamentAPI.baseURL, {
+        method: "POST",
+        headers: headers,
+        credentials: "include",
+        body: JSON.stringify({
+          action: "remove-team-member",
+          team_id: teamId,
+          member_id: memberId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Member removed successfully");
+        loadSection("team-management");
+      } else {
+        alert("Error: " + (data.message || "Failed to remove member"));
+      }
+    } catch (error) {
+      console.error("Error removing member:", error);
+      alert("Error removing member. Please try again.");
+    }
+  };
+
+  // Load teams immediately
+  loadMyTeams();
+
+  async function loadMyTeams() {
+    const loadingState = document.getElementById("loadingState");
+    const emptyState = document.getElementById("emptyState");
+    const container = document.getElementById("teamsContainer");
+
+    if (!loadingState || !emptyState || !container) {
+      console.error("Required elements not found");
+      return;
+    }
+
+    loadingState.classList.remove("hidden");
+    emptyState.classList.add("hidden");
+    container.classList.add("hidden");
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        window.TournamentAPI.baseURL + "?action=my-teams",
+        {
+          credentials: "include",
+          headers: headers,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to load teams");
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        const teams = data.teams || [];
+        loadingState.classList.add("hidden");
+
+        if (teams.length === 0) {
+          emptyState.classList.remove("hidden");
+        } else {
+          container.classList.remove("hidden");
+          await renderTeams(teams);
+        }
+      } else {
+        throw new Error(data.message || "Failed to load teams");
+      }
+    } catch (error) {
+      console.error("Error loading teams:", error);
+      loadingState.classList.add("hidden");
+      emptyState.classList.remove("hidden");
+      const errorP = emptyState.querySelector("p");
+      if (errorP) {
+        errorP.textContent = "Error loading teams. Please try again.";
+      }
+    }
+  }
+
+  async function renderTeams(teams) {
+    const container = document.getElementById("teamsContainer");
+
+    const teamCards = await Promise.all(
+      teams.map(async (team) => {
+        // Load team members
+        const token = localStorage.getItem("auth_token");
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const membersResponse = await fetch(
+          window.TournamentAPI.baseURL +
+            `?action=team-members&team_id=${team.id}`,
+          {
+            credentials: "include",
+            headers: headers,
+          }
+        );
+
+        let members = [];
+        if (membersResponse.ok) {
+          const membersData = await membersResponse.json();
+          if (membersData.success) {
+            members = membersData.members || [];
+          }
+        }
+
+        return createTeamCard(team, members);
+      })
+    );
+
+    container.innerHTML = teamCards.join("");
+  }
+
+  function createTeamCard(team, members) {
+    const statusColors = {
+      active: "bg-green-100 text-green-800",
+      disbanded: "bg-gray-100 text-gray-800",
+      disqualified: "bg-red-100 text-red-800",
+    };
+
+    return `
+      <div class="bg-gray-800 rounded-lg shadow-md p-6 border border-gray-700">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-white">${team.team_name}</h3>
+            ${
+              team.team_tag
+                ? `<span class="text-sm text-gray-400">[${team.team_tag}]</span>`
+                : ""
+            }
+            <p class="text-sm text-gray-400 mt-1">Tournament: ${
+              team.tournament_name
+            }</p>
+          </div>
+          <span class="px-2 py-1 text-xs font-semibold rounded ${
+            statusColors[team.team_status] || "bg-gray-100 text-gray-800"
+          }">
+            ${team.team_status.toUpperCase()}
+          </span>
+        </div>
+
+        <div class="mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <h4 class="text-sm font-semibold text-gray-300">Team Members (${
+              members.length
+            })</h4>
+            ${
+              team.team_status === "active"
+                ? `
+            <button onclick="openAddMemberModal(${team.id})" class="px-3 py-1 bg-cyan-600 text-white text-sm rounded hover:bg-cyan-700">
+              Add Member
+            </button>
+            `
+                : ""
+            }
+          </div>
+          <div class="space-y-2">
+            ${
+              members.length > 0
+                ? members
+                    .map(
+                      (member) => `
+              <div class="flex justify-between items-center p-2 bg-gray-700/50 rounded">
+                <div class="flex items-center">
+                  <span class="font-medium text-white">${member.username}</span>
+                  ${
+                    member.role === "captain"
+                      ? '<span class="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded">Captain</span>'
+                      : ""
+                  }
+                  ${
+                    member.role === "co_captain"
+                      ? '<span class="ml-2 px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded">Co-Captain</span>'
+                      : ""
+                  }
+                </div>
+                ${
+                  member.role !== "captain" && team.team_status === "active"
+                    ? `
+                <button onclick="removeMember(${team.id}, ${member.id}, '${member.username}')" class="text-red-400 hover:text-red-300 text-sm">
+                  Remove
+                </button>
+                `
+                    : ""
+                }
+              </div>
+            `
+                    )
+                    .join("")
+                : '<p class="text-sm text-gray-500 italic">No members yet</p>'
+            }
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ===== Notification Center =====
+function setupNotificationCenter() {
+  const bellBtn = document.getElementById("notification-bell-btn");
+  const dropdown = document.getElementById("notification-dropdown");
+  const markAllReadBtn = document.getElementById("mark-all-read-btn");
+
+  if (!bellBtn || !dropdown) return;
+
+  // Load notifications initially
+  loadNotificationCenter();
+
+  // Refresh notifications every 30 seconds
+  setInterval(loadNotificationCenter, 30000);
+
+  // Toggle dropdown
+  bellBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle("hidden");
+
+    // Position dropdown below the bell button
+    if (!dropdown.classList.contains("hidden")) {
+      const rect = bellBtn.getBoundingClientRect();
+      dropdown.style.top = `${rect.bottom + 8}px`;
+      dropdown.style.right = `${window.innerWidth - rect.right}px`;
+    }
+
+    // Close profile menu if open
+    const profileMenu = document.getElementById("profile-menu");
+    if (profileMenu) {
+      profileMenu.classList.add("hidden");
+    }
+  });
+
+  // Mark all as read
+  markAllReadBtn?.addEventListener("click", () => {
+    markAllNotificationsAsRead();
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add("hidden");
+    }
+  });
+}
+
+async function loadNotificationCenter() {
+  const token = localStorage.getItem("auth_token");
+  if (!token) return;
+
+  try {
+    const response = await fetch(
+      "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php?action=notifications",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      const notifications = data.data || [];
+      updateNotificationBadge(notifications);
+      renderNotifications(notifications);
+    }
+  } catch (error) {
+    console.error("Error loading notifications:", error);
+  }
+}
+
+function updateNotificationBadge(notifications) {
+  const badge = document.getElementById("notification-badge");
+  if (!badge) return;
+
+  const unreadCount = notifications.filter((n) => n.is_read === "0").length;
+
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 99 ? "99+" : unreadCount;
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+function renderNotifications(notifications) {
+  const container = document.getElementById("notifications-container");
+  if (!container) return;
+
+  if (notifications.length === 0) {
+    container.innerHTML = `
+      <div class="p-8 text-center text-gray-400">
+        <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+        </svg>
+        <p>No notifications yet</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = notifications
+    .map((notification) => {
+      const isUnread = notification.is_read === "0";
+      const date = new Date(notification.created_at);
+      const timeAgo = getTimeAgo(date);
+
+      return `
+      <div class="notification-item p-4 border-b border-gray-700 hover:bg-gray-750 cursor-pointer ${
+        isUnread ? "bg-gray-800" : ""
+      }" 
+           data-notification-id="${notification.id}"
+           onclick="window.handleNotificationClick(${notification.id}, '${
+        notification.type
+      }', ${notification.related_id})">
+        <div class="flex items-start space-x-3">
+          ${
+            isUnread
+              ? '<div class="w-2 h-2 bg-cyan-400 rounded-full mt-2 flex-shrink-0"></div>'
+              : '<div class="w-2 h-2 flex-shrink-0"></div>'
+          }
+          <div class="flex-1 min-w-0">
+            <p class="text-sm ${
+              isUnread ? "font-semibold text-white" : "text-gray-300"
+            }">${notification.message}</p>
+            <p class="text-xs text-gray-500 mt-1">${timeAgo}</p>
+          </div>
+          ${
+            isUnread
+              ? `
+            <button class="text-cyan-400 hover:text-cyan-300 text-xs flex-shrink-0"
+                    onclick="event.stopPropagation(); window.markNotificationAsRead(${notification.id})">
+              Mark as read
+            </button>
+          `
+              : ""
+          }
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+// Global function for handling notification clicks
+window.handleNotificationClick = async function (
+  notificationId,
+  type,
+  relatedId
+) {
+  // Mark as read
+  await markNotificationAsRead(notificationId);
+
+  // Navigate based on notification type
+  if (type === "tournament_update" && relatedId) {
+    currentTournamentId = relatedId;
+    loadSection("tournament-details");
+  } else if (type === "registration_confirmed" && relatedId) {
+    loadSection("my-tournaments");
+  }
+
+  // Close dropdown
+  document.getElementById("notification-dropdown")?.classList.add("hidden");
+};
+
+// Global function for marking single notification as read
+window.markNotificationAsRead = async function (notificationId) {
+  const token = localStorage.getItem("auth_token");
+  if (!token) return;
+
+  try {
+    const response = await fetch(
+      "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "mark_notification_read",
+          notification_id: notificationId,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Reload notifications to update UI
+      loadNotificationCenter();
+    }
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+  }
+};
+
+async function markAllNotificationsAsRead() {
+  const token = localStorage.getItem("auth_token");
+  if (!token) return;
+
+  try {
+    const response = await fetch(
+      "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "mark_all_notifications_read",
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification("All notifications marked as read", "success");
+      loadNotificationCenter();
+    }
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+  }
+}
+
+function getTimeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+
+  const intervals = {
+    year: 31536000,
+    month: 2592000,
+    week: 604800,
+    day: 86400,
+    hour: 3600,
+    minute: 60,
+  };
+
+  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+    const interval = Math.floor(seconds / secondsInUnit);
+    if (interval >= 1) {
+      return `${interval} ${unit}${interval > 1 ? "s" : ""} ago`;
+    }
+  }
+
+  return "Just now";
 }
