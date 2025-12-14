@@ -62,11 +62,11 @@ require_once __DIR__ . '/../../../includes/header.php';
                     <label class="block text-sm font-medium text-gray-300 mb-2">
                         Team Members <span class="text-red-400">*</span>
                     </label>
-                    <p class="text-xs text-gray-400 mb-2">Enter usernames of your teammates (one per line)</p>
-                    <div id="teamMembersContainer" class="space-y-2">
+                    <p class="text-xs text-gray-400 mb-3">Enter username for each teammate below:</p>
+                    <div id="teamMembersContainer">
                         <!-- Team member inputs will be added here dynamically -->
                     </div>
-                    <p id="teamSizeHint" class="text-xs text-gray-400 mt-1"></p>
+                    <p id="teamSizeHint" class="text-xs text-cyan-400 mt-2 font-medium"></p>
                 </div>
             </div>
             
@@ -501,13 +501,23 @@ require_once __DIR__ . '/../../../includes/header.php';
         
         // Create teamSize-1 inputs (captain is already counted)
         for (let i = 0; i < teamSize - 1; i++) {
+            const div = document.createElement('div');
+            div.className = 'mb-3';
+            
+            const label = document.createElement('label');
+            label.className = 'block text-xs font-medium text-gray-400 mb-1';
+            label.textContent = `Teammate ${i + 1}`;
+            
             const input = document.createElement('input');
             input.type = 'text';
             input.name = `team_member_${i}`;
             input.className = 'w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500';
-            input.placeholder = `Teammate ${i + 1} username`;
+            input.placeholder = `Enter username for teammate ${i + 1}`;
             input.required = true;
-            container.appendChild(input);
+            
+            div.appendChild(label);
+            div.appendChild(input);
+            container.appendChild(div);
         }
         
         hint.textContent = `Team needs ${teamSize} players total (you + ${teamSize - 1} teammates)`;
@@ -627,6 +637,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
                 body: JSON.stringify(data)
             });
             
