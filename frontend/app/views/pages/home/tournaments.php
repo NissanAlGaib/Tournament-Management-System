@@ -160,21 +160,37 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
                     try {
                         const userData = JSON.parse(userDataStr);
                         console.log('Parsed user data:', userData);
+                        console.log('User data has roles property:', userData.hasOwnProperty('roles'));
+                        console.log('Roles value:', userData.roles);
                         
                         if (userData.roles && Array.isArray(userData.roles)) {
-                            const hasPermission = userData.roles.some(role => 
-                                role.role_name === 'Organizer' || role.role_name === 'Admin'
-                            );
+                            console.log('Roles array length:', userData.roles.length);
+                            console.log('All roles:', userData.roles);
+                            
+                            const hasPermission = userData.roles.some(role => {
+                                console.log('Checking role:', role, 'role_name:', role.role_name);
+                                return role.role_name === 'Organizer' || role.role_name === 'Admin';
+                            });
                             
                             console.log('User roles:', userData.roles.map(r => r.role_name));
                             console.log('Has permission to create tournament:', hasPermission);
                             
                             if (hasPermission) {
                                 createBtn.classList.remove('hidden');
-                                console.log('Create button shown');
+                                createBtn.classList.add('block'); // Show as block element
+                                console.log('Create button shown - button classes:', createBtn.className);
+                                console.log('Button display style:', createBtn.style.display);
+                                console.log('Button computed display:', window.getComputedStyle(createBtn).display);
+                                
+                                // Add click handler only if user has permission
+                                createBtn.addEventListener('click', function() {
+                                    window.location.href = '<?php echo getPagePath('home/create-tournament.php'); ?>';
+                                });
                             } else {
                                 console.log('User does not have Organizer or Admin role');
                             }
+                        } else {
+                            console.log('No roles array found in user data or roles is not an array');
                         }
                     } catch (e) {
                         console.error('Error parsing user data:', e);
@@ -182,11 +198,6 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
                 } else {
                     console.log('No user data found in localStorage');
                 }
-
-                // Add click handler
-                createBtn.addEventListener('click', function() {
-                    window.location.href = '<?php echo getPagePath('home/create-tournament.php'); ?>';
-                });
             }
 
             // Load and display tournaments
