@@ -1,14 +1,16 @@
 <?php
-require_once __DIR__ . '/../../helpers/path_helper.php';
+require_once __DIR__ . '/../../../helpers/path_helper.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Activity - Tournament Management System</title>
     <link rel="stylesheet" href="<?php echo getAssetPath('output.css'); ?>">
 </head>
+
 <body class="bg-gray-900 min-h-screen">
     <!-- Admin Navigation Bar -->
     <nav class="bg-gray-800/90 backdrop-blur-md border-b border-cyan-500/50 shadow-lg shadow-cyan-500/20">
@@ -131,4 +133,5 @@ require_once __DIR__ . '/../../helpers/path_helper.php';
 
     <script type="module" src="<?php echo getAssetPath('js/admin-activity.js'); ?>"></script>
 </body>
+
 </html>

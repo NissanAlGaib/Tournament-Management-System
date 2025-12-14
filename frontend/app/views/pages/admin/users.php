@@ -1,14 +1,16 @@
 <?php
-require_once __DIR__ . '/../../helpers/path_helper.php';
+require_once __DIR__ . '/../../../helpers/path_helper.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - Tournament Management System</title>
     <link rel="stylesheet" href="<?php echo getAssetPath('output.css'); ?>">
 </head>
+
 <body class="bg-gray-900 min-h-screen">
     <!-- Admin Navigation Bar -->
     <nav class="bg-gray-800/90 backdrop-blur-md border-b border-cyan-500/50 shadow-lg shadow-cyan-500/20">
@@ -98,12 +100,11 @@ require_once __DIR__ . '/../../helpers/path_helper.php';
                     <!-- Search Bar -->
                     <div class="mb-6">
                         <div class="relative">
-                            <input 
-                                type="text" 
-                                id="user-search" 
+                            <input
+                                type="text"
+                                id="user-search"
                                 placeholder="Search users by name or email..."
-                                class="w-full px-4 py-3 pl-12 bg-gray-900 border-2 border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                            >
+                                class="w-full px-4 py-3 pl-12 bg-gray-900 border-2 border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all">
                             <svg class="w-5 h-5 text-gray-500 absolute left-4 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
@@ -125,4 +126,5 @@ require_once __DIR__ . '/../../helpers/path_helper.php';
 
     <script type="module" src="<?php echo getAssetPath('js/admin-users.js'); ?>"></script>
 </body>
+
 </html>
