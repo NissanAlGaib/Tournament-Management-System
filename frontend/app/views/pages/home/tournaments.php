@@ -172,14 +172,19 @@ require_once __DIR__ . '/../../../includes/header.php';
                     if (isOrg || isAdm) {
                         console.log('✓ User has permission - SHOWING BUTTON');
                         createBtn.classList.remove('hidden');
-                        createBtn.addEventListener('click', function() {
+                        createBtn.addEventListener('click', function(e) {
+                            console.log('=== CREATE BUTTON CLICKED ===');
+                            e.preventDefault();
                             // Open the modal instead of navigating
                             if (typeof window.openCreateTournamentModal === 'function') {
+                                console.log('Opening modal...');
                                 window.openCreateTournamentModal();
                             } else {
                                 console.error('Modal function not found');
+                                console.log('window.openCreateTournamentModal:', window.openCreateTournamentModal);
                             }
                         });
+                        console.log('Event listener attached to button');
                     } else {
                         console.log('✗ User does not have required role');
                     }

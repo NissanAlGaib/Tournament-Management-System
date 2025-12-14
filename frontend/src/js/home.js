@@ -339,8 +339,12 @@ function setupTournaments() {
         console.log("User has permission - showing Create Tournament button");
         createBtn.classList.remove("hidden");
         createBtn.addEventListener("click", function () {
-          window.location.href =
-            "/GitHub Repos/Tournament-Management-System/frontend/app/views/pages/home/create-tournament.php";
+          // Open the create tournament modal
+          if (typeof window.openCreateTournamentModal === "function") {
+            window.openCreateTournamentModal();
+          } else {
+            console.error("Create tournament modal function not found");
+          }
         });
       } else {
         console.log("User does not have Organizer or Admin role");

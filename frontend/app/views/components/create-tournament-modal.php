@@ -220,12 +220,33 @@
 </div>
 
 <script>
-    (function() {
-        let currentStep = 1;
-        const totalSteps = 3;
-        let prizeCount = 1;
+    console.log('=== CREATE TOURNAMENT MODAL SCRIPT LOADING ===');
 
-        // Modal controls
+    let currentStep = 1;
+    const totalSteps = 3;
+    let prizeCount = 1;
+    let initialized = false;
+
+    // Define the modal opening function globally first
+    window.openCreateTournamentModal = function() {
+        console.log('Modal opener function called');
+        const modal = document.getElementById('createTournamentModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            currentStep = 1;
+            // Initialize modal functionality if not already done
+            if (!initialized) {
+                initializeModal();
+            }
+            showStep(1);
+        } else {
+            console.error('Create tournament modal element not found');
+        }
+    };
+    console.log('Modal function defined:', typeof window.openCreateTournamentModal);
+
+    function initializeModal() {
+        console.log('Initializing modal...');
         const modal = document.getElementById('createTournamentModal');
         const closeBtn = document.getElementById('closeModalBtn');
         const form = document.getElementById('createTournamentForm');
@@ -233,12 +254,10 @@
         const prevBtn = document.getElementById('prevStepBtn');
         const submitBtn = document.getElementById('submitBtn');
 
-        // Open modal function (will be called from tournaments page)
-        window.openCreateTournamentModal = function() {
-            modal.classList.remove('hidden');
-            currentStep = 1;
-            showStep(1);
-        };
+        if (!nextBtn || !prevBtn) {
+            console.error('Button elements not found!');
+            return;
+        }
 
         // Close modal
         function closeModal() {
@@ -248,151 +267,192 @@
             showStep(1);
         }
 
-        closeBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) closeModal();
-        });
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeModal);
+        }
 
-        // Step navigation
-        function showStep(step) {
-            // Hide all steps
-            for (let i = 1; i <= totalSteps; i++) {
-                document.getElementById(`step${i}`).classList.add('hidden');
-                const stepNumber = document.querySelectorAll('.step-number')[i - 1];
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeModal();
+            });
+        }
+
+        // Next button
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function(e) {
+                console.log('Next button clicked, current step:', currentStep);
+                e.preventDefault();
+                e.stopPropagation();
+                if (currentStep < totalSteps) {
+                    showStep(currentStep + 1);
+                }
+            });
+            console.log('Next button listener attached');
+        } else {
+            console.error('Next button not found!');
+        }
+
+        // Previous button
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function(e) {
+                console.log('Previous button clicked, current step:', currentStep);
+                e.preventDefault();
+                e.stopPropagation();
+                if (currentStep > 1) {
+                    showStep(currentStep - 1);
+                }
+            });
+        }
+
+        // Add prize functionality
+        const addPrizeBtn = document.getElementById('addPrizeBtn');
+        if (addPrizeBtn) {
+            addPrizeBtn.addEventListener('click', function() {
+                const container = document.getElementById('prizesContainer');
+                const newPrize = document.createElement('div');
+                newPrize.className = 'prize-entry grid grid-cols-3 gap-2';
+                newPrize.innerHTML = `
+                    <input type="number" name="prizes[${prizeCount}][placement]" value="${prizeCount + 1}" min="1" placeholder="Place"
+                        class="bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-500 text-sm">
+                    <input type="number" name="prizes[${prizeCount}][amount]" step="0.01" min="0" placeholder="Amount ($)"
+                        class="bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-500 text-sm">
+                    <input type="text" name="prizes[${prizeCount}][description]" placeholder="Description"
+                        class="bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-500 text-sm">
+                `;
+                container.appendChild(newPrize);
+                prizeCount++;
+            });
+        }
+
+        // Form submission
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                // Show loading
+                document.getElementById('modalLoadingOverlay').classList.remove('hidden');
+
+                // Collect form data
+                const formData = {
+                    name: document.getElementById('name').value,
+                    description: document.getElementById('description').value || '',
+                    game_type: document.getElementById('game_type').value || '',
+                    format: document.getElementById('format').value,
+                    tournament_size: parseInt(document.getElementById('tournament_size').value),
+                    scoring_system: document.getElementById('scoring_system').value,
+                    entry_fee: parseFloat(document.getElementById('entry_fee').value) || 0,
+                    visibility: document.getElementById('visibility').value,
+                    is_public: document.getElementById('visibility').value === 'public' ? 1 : 0,
+                    registration_deadline: document.getElementById('registration_deadline').value,
+                    start_date: document.getElementById('start_date').value,
+                    rules: document.getElementById('rules').value || '',
+                    status: 'open'
+                };
+
+                // Collect prizes
+                const prizes = [];
+                const prizeEntries = document.querySelectorAll('.prize-entry');
+                prizeEntries.forEach((entry, index) => {
+                    const placement = entry.querySelector(`[name="prizes[${index}][placement]"]`)?.value;
+                    const amount = entry.querySelector(`[name="prizes[${index}][amount]"]`)?.value;
+                    const description = entry.querySelector(`[name="prizes[${index}][description]"]`)?.value;
+
+                    if (placement && amount) {
+                        prizes.push({
+                            placement: parseInt(placement),
+                            amount: parseFloat(amount),
+                            currency: 'USD',
+                            type: 'cash',
+                            description: description || ''
+                        });
+                    }
+                });
+
+                if (prizes.length > 0) {
+                    formData.prizes = prizes;
+                }
+
+                try {
+                    console.log('Creating tournament with data:', formData);
+                    const result = await TournamentAPI.createTournament(formData);
+
+                    console.log('Tournament creation result:', result);
+
+                    // Hide loading
+                    document.getElementById('modalLoadingOverlay').classList.add('hidden');
+
+                    if (result.success) {
+                        // Show success message
+                        if (typeof TournamentUI !== 'undefined') {
+                            TournamentUI.showNotification('Tournament created successfully!', 'success');
+                        } else {
+                            alert('Tournament created successfully!');
+                        }
+
+                        // Close modal
+                        closeModal();
+
+                        // Reload tournaments if the function exists
+                        if (typeof window.loadTournaments === 'function') {
+                            window.loadTournaments();
+                        } else {
+                            // Refresh page as fallback
+                            setTimeout(() => location.reload(), 1000);
+                        }
+                    } else {
+                        throw new Error(result.message || 'Failed to create tournament');
+                    }
+                } catch (error) {
+                    console.error('Error creating tournament:', error);
+                    document.getElementById('modalLoadingOverlay').classList.add('hidden');
+
+                    if (typeof TournamentUI !== 'undefined') {
+                        TournamentUI.showNotification('Error: ' + error.message, 'error');
+                    } else {
+                        alert('Error creating tournament: ' + error.message);
+                    }
+                }
+            });
+        }
+
+        initialized = true;
+    }
+
+    function showStep(step) {
+        currentStep = step;
+
+        // Hide all steps
+        for (let i = 1; i <= totalSteps; i++) {
+            const stepEl = document.getElementById(`step${i}`);
+            if (stepEl) {
+                stepEl.classList.add('hidden');
+            }
+            const stepNumber = document.querySelectorAll('.step-number')[i - 1];
+            if (stepNumber) {
                 stepNumber.classList.remove('bg-gradient-to-r', 'from-cyan-500', 'to-purple-600', 'text-white');
                 stepNumber.classList.add('bg-gray-700', 'text-gray-400');
             }
-
-            // Show current step
-            document.getElementById(`step${step}`).classList.remove('hidden');
-            const currentStepNumber = document.querySelectorAll('.step-number')[step - 1];
-            currentStepNumber.classList.remove('bg-gray-700', 'text-gray-400');
-            currentStepNumber.classList.add('bg-gradient-to-r', 'from-cyan-500', 'to-purple-600', 'text-white');
-
-            // Update buttons
-            prevBtn.classList.toggle('hidden', step === 1);
-            nextBtn.classList.toggle('hidden', step === totalSteps);
-            submitBtn.classList.toggle('hidden', step !== totalSteps);
-
-            currentStep = step;
         }
 
-        nextBtn.addEventListener('click', function() {
-            if (currentStep < totalSteps) {
-                showStep(currentStep + 1);
-            }
-        });
+        // Show current step
+        const currentStepEl = document.getElementById(`step${step}`);
+        if (currentStepEl) {
+            currentStepEl.classList.remove('hidden');
+        }
 
-        prevBtn.addEventListener('click', function() {
-            if (currentStep > 1) {
-                showStep(currentStep - 1);
-            }
-        });
+        const currentStepNumber = document.querySelectorAll('.step-number')[step - 1];
+        if (currentStepNumber) {
+            currentStepNumber.classList.remove('bg-gray-700', 'text-gray-400');
+            currentStepNumber.classList.add('bg-gradient-to-r', 'from-cyan-500', 'to-purple-600', 'text-white');
+        }
 
-        // Add prize functionality
-        document.getElementById('addPrizeBtn').addEventListener('click', function() {
-            const container = document.getElementById('prizesContainer');
-            const newPrize = document.createElement('div');
-            newPrize.className = 'prize-entry grid grid-cols-3 gap-2';
-            newPrize.innerHTML = `
-                <input type="number" name="prizes[${prizeCount}][placement]" value="${prizeCount + 1}" min="1" placeholder="Place"
-                    class="bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-500 text-sm">
-                <input type="number" name="prizes[${prizeCount}][amount]" step="0.01" min="0" placeholder="Amount ($)"
-                    class="bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-500 text-sm">
-                <input type="text" name="prizes[${prizeCount}][description]" placeholder="Description"
-                    class="bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-500 text-sm">
-            `;
-            container.appendChild(newPrize);
-            prizeCount++;
-        });
+        // Update buttons
+        const prevBtn = document.getElementById('prevStepBtn');
+        const nextBtn = document.getElementById('nextStepBtn');
+        const submitBtn = document.getElementById('submitBtn');
 
-        // Form submission
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            // Show loading
-            document.getElementById('modalLoadingOverlay').classList.remove('hidden');
-
-            // Collect form data
-            const formData = {
-                name: document.getElementById('name').value,
-                description: document.getElementById('description').value || '',
-                game_type: document.getElementById('game_type').value || '',
-                format: document.getElementById('format').value,
-                tournament_size: parseInt(document.getElementById('tournament_size').value),
-                scoring_system: document.getElementById('scoring_system').value,
-                entry_fee: parseFloat(document.getElementById('entry_fee').value) || 0,
-                visibility: document.getElementById('visibility').value,
-                is_public: document.getElementById('visibility').value === 'public' ? 1 : 0,
-                registration_deadline: document.getElementById('registration_deadline').value,
-                start_date: document.getElementById('start_date').value,
-                rules: document.getElementById('rules').value || '',
-                status: 'open'
-            };
-
-            // Collect prizes
-            const prizes = [];
-            const prizeEntries = document.querySelectorAll('.prize-entry');
-            prizeEntries.forEach((entry, index) => {
-                const placement = entry.querySelector(`[name="prizes[${index}][placement]"]`)?.value;
-                const amount = entry.querySelector(`[name="prizes[${index}][amount]"]`)?.value;
-                const description = entry.querySelector(`[name="prizes[${index}][description]"]`)?.value;
-
-                if (placement && amount) {
-                    prizes.push({
-                        placement: parseInt(placement),
-                        amount: parseFloat(amount),
-                        currency: 'USD',
-                        type: 'cash',
-                        description: description || ''
-                    });
-                }
-            });
-
-            if (prizes.length > 0) {
-                formData.prizes = prizes;
-            }
-
-            try {
-                console.log('Creating tournament with data:', formData);
-                const result = await TournamentAPI.createTournament(formData);
-
-                console.log('Tournament creation result:', result);
-
-                // Hide loading
-                document.getElementById('modalLoadingOverlay').classList.add('hidden');
-
-                if (result.success) {
-                    // Show success message
-                    if (typeof TournamentUI !== 'undefined') {
-                        TournamentUI.showNotification('Tournament created successfully!', 'success');
-                    } else {
-                        alert('Tournament created successfully!');
-                    }
-
-                    // Close modal
-                    closeModal();
-
-                    // Reload tournaments if the function exists
-                    if (typeof window.loadTournaments === 'function') {
-                        window.loadTournaments();
-                    } else {
-                        // Refresh page as fallback
-                        setTimeout(() => location.reload(), 1000);
-                    }
-                } else {
-                    throw new Error(result.message || 'Failed to create tournament');
-                }
-            } catch (error) {
-                console.error('Error creating tournament:', error);
-                document.getElementById('modalLoadingOverlay').classList.add('hidden');
-
-                if (typeof TournamentUI !== 'undefined') {
-                    TournamentUI.showNotification('Error: ' + error.message, 'error');
-                } else {
-                    alert('Error creating tournament: ' + error.message);
-                }
-            }
-        });
-    })();
+        if (prevBtn) prevBtn.classList.toggle('hidden', step === 1);
+        if (nextBtn) nextBtn.classList.toggle('hidden', step === totalSteps);
+        if (submitBtn) submitBtn.classList.toggle('hidden', step !== totalSteps);
+    }
 </script>
