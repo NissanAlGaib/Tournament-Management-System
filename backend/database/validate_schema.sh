@@ -2,15 +2,19 @@
 # Tournament Database Schema Validator
 # This script validates the SQL syntax and provides a summary
 
+set -e  # Exit on error
+
 echo "=========================================="
 echo "Tournament Management Schema Validator"
 echo "=========================================="
 echo ""
 
-SQL_FILE="tournament_management.sql"
+# Accept filename as argument or use default
+SQL_FILE="${1:-tournament_management.sql}"
 
 if [ ! -f "$SQL_FILE" ]; then
     echo "❌ Error: $SQL_FILE not found!"
+    echo "Usage: $0 [sql_file]"
     exit 1
 fi
 

@@ -137,8 +137,8 @@ mysql -u root -p tournament_db < tournament_management.sql
 Before running this script, ensure:
 
 1. ✅ `tournament_db` database exists
-2. ✅ `users` table exists (created during initial setup)
-3. ✅ `setup_roles.sql` has been executed (for roles and users tables)
+2. ✅ `users` table exists (created by setup_roles.sql)
+3. ✅ `setup_roles.sql` has been executed (for roles, users, and user_roles tables)
 
 ## Verification
 
