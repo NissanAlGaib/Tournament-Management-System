@@ -12,6 +12,7 @@ import {
     getAllRoles
 } from './core/auth.js';
 import { displayUserRoleBadges } from './roleUtils.js';
+import { getPagePath } from './pathHelper.js';
 
 let allUsers = [];
 let allRoles = [];
@@ -23,7 +24,7 @@ let pendingRequests = [];
 function checkAdminAccess() {
     if (!isAdmin()) {
         alert('Access denied. Admin privileges required.');
-        window.location.href = '../home/dashboard.php';
+        window.location.href = getPagePath('home/index.php');
     }
 }
 

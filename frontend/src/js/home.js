@@ -1,5 +1,6 @@
 // Import authentication module
 import * as Auth from "./core/auth.js";
+import { getViewPath } from "./pathHelper.js";
 
 // DOM Elements
 let homeContent;
@@ -230,5 +231,5 @@ function showNotification(message, type = "info") {
 // Handle logout
 async function handleLogout() {
   await Auth.logout();
-  window.location.href = "../../layout.php";
+  window.location.href = getViewPath("layout.php");
 }

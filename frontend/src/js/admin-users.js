@@ -4,6 +4,7 @@ import {
     getAllUsers
 } from './core/auth.js';
 import { displayUserRoleBadges } from './roleUtils.js';
+import { getPagePath } from './pathHelper.js';
 
 let allUsers = [];
 
@@ -13,7 +14,7 @@ let allUsers = [];
 function checkAdminAccess() {
     if (!isAdmin()) {
         alert('Access denied. Admin privileges required.');
-        window.location.href = '../home/index.php';
+        window.location.href = getPagePath('home/index.php');
     }
 }
 

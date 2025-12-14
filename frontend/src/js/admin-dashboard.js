@@ -6,6 +6,7 @@ import {
     getPendingRoleRequests
 } from './core/auth.js';
 import { displayUserRoleBadges } from './roleUtils.js';
+import { getPagePath } from './pathHelper.js';
 
 /**
  * Check if user is admin, redirect if not
@@ -13,7 +14,7 @@ import { displayUserRoleBadges } from './roleUtils.js';
 function checkAdminAccess() {
     if (!isAdmin()) {
         alert('Access denied. Admin privileges required.');
-        window.location.href = '../home/index.php';
+        window.location.href = getPagePath('home/index.php');
     }
 }
 
