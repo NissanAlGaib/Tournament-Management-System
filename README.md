@@ -4,6 +4,18 @@ A modern tournament management system with role-based access control, JWT authen
 
 ## Features
 
+### Tournament Management
+- **Tournament Creation**: Organizers can create tournaments with custom configurations
+- **Multiple Formats**: Single elimination, double elimination, round robin, Swiss, and custom formats
+- **Registration Management**: Configurable registration requirements and deadlines
+- **Match Tracking**: Complete match result tracking and verification system
+- **Prize Management**: Flexible prize pool setup with multiple prize types (cash, trophies, medals, points)
+- **Standings & Leaderboard**: Real-time tournament standings and rankings
+- **Tournament Status**: Full lifecycle management (draft, open, ongoing, completed, cancelled)
+- **Team Support**: Optional team tournament functionality
+- **Notifications**: Tournament announcements and updates system
+- **Activity Logging**: Complete audit trail for all tournament actions
+
 ### Authentication & Security
 - **JWT Authentication**: Secure token-based authentication with server-side session validation
 - **Role-Based Access Control (RBAC)**: Three-tier role system (Admin, Organizer, Player)
@@ -88,13 +100,15 @@ A modern tournament management system with role-based access control, JWT authen
    # Create database
    mysql -u root -p -e "CREATE DATABASE tournament_db;"
    
-   # Run migration script
+   # Run migration scripts
    mysql -u root -p tournament_db < backend/database/setup_roles.sql
+   mysql -u root -p tournament_db < backend/database/tournament_management.sql
    ```
    
    Or use phpMyAdmin:
    - Create database: `tournament_db`
    - Import: `backend/database/setup_roles.sql`
+   - Import: `backend/database/tournament_management.sql`
 
 3. **Configure database connection** (if needed)
    - Update `backend/api/database.php` with your credentials
@@ -123,6 +137,20 @@ A modern tournament management system with role-based access control, JWT authen
    - Check that all tables exist and files are in place
    - Delete `verify-setup.php` after verification
 
+8. **Verify tournament database**
+   ```bash
+   # Run validation script
+   cd backend/database
+   chmod +x validate_schema.sh
+   ./validate_schema.sh
+   ```
+   
+   Or check manually in MySQL:
+   ```sql
+   SHOW TABLES LIKE 'tournament%';
+   SHOW TABLES LIKE 'match%';
+   ```
+
 ### First Steps
 
 1. **Register** a new user (auto-assigned Player role)
@@ -130,12 +158,14 @@ A modern tournament management system with role-based access control, JWT authen
 3. **Make yourself admin** (see step 6 above)
 4. **Access admin panel**: `/frontend/app/views/pages/admin/role-management.php`
 5. **Request organizer role** from your profile page if you're a player
+6. **Create tournaments** once you have the Organizer role
 
 ## Documentation
 
 - **📘 [Setup Guide](SETUP_GUIDE.md)** - Detailed installation and configuration
 - **📗 [Quick Reference](ROLE_REFERENCE.md)** - Code snippets and API examples
 - **📙 [Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Overview of what's been built
+- **🏆 [Tournament Setup Guide](backend/database/TOURNAMENT_SETUP_README.md)** - Tournament database integration guide
 
 4. **Install frontend dependencies**
    ```bash
