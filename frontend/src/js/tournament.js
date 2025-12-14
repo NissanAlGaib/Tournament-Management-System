@@ -308,6 +308,76 @@ const TournamentAPI = {
       return { success: false, message: error.message };
     }
   },
+
+  /**
+   * Get tournament bracket
+   */
+  async getTournamentBracket(tournamentId) {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?action=tournament-bracket&tournament_id=${tournamentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+        }
+      );
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching tournament bracket:", error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  /**
+   * Generate bracket for tournament
+   */
+  async generateBracket(tournamentId) {
+    try {
+      const response = await fetch(this.baseURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+        body: JSON.stringify({
+          action: "generate-bracket",
+          tournament_id: tournamentId,
+        }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error generating bracket:", error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  /**
+   * Set match winner
+   */
+  async setMatchWinner(matchId, winnerId) {
+    try {
+      const response = await fetch(this.baseURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+        body: JSON.stringify({
+          action: "set-match-winner",
+          match_id: matchId,
+          winner_id: winnerId,
+        }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error setting match winner:", error);
+      return { success: false, message: error.message };
+    }
+  },
 };
 
 /**
