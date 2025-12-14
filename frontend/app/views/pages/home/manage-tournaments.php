@@ -181,7 +181,7 @@ require_once __DIR__ . '/../../../includes/header.php';
 
     // View bracket
     window.viewBracket = function(tournamentId) {
-        window.location.href = `tournament-bracket.php?id=${tournamentId}`;
+        window.viewTournamentBracket(tournamentId);
     };
 
     // View participants

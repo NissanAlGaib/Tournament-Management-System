@@ -128,6 +128,8 @@ function loadSection(sectionName) {
         setTimeout(() => setupTeamManagement(), 10);
       } else if (sectionName === "manage-tournaments") {
         setTimeout(() => setupManageTournaments(), 10);
+      } else if (sectionName === "tournament-bracket") {
+        setTimeout(() => setupTournamentBracket(), 10);
       } else if (sectionName === "tournament-details") {
         setTimeout(() => setupTournamentDetails(), 10);
       }
@@ -1632,6 +1634,12 @@ function setupManageTournaments() {
             </svg>
             Manage Participants
           </button>
+          <button onclick="window.viewTournamentBracket(${tournament.id})" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            View Bracket
+          </button>
           ${
             tournament.is_team_based == 1
               ? `
@@ -1943,6 +1951,327 @@ function setupManageTournaments() {
       waitlist: "bg-blue-600 text-white",
     };
     return classes[status] || "bg-gray-600 text-white";
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+}
+
+// ===== Tournament Bracket =====
+let currentBracketTournamentId = null;
+
+// Global function to view tournament bracket
+window.viewTournamentBracket = function(tournamentId) {
+  currentBracketTournamentId = tournamentId;
+  loadSection('tournament-bracket');
+};
+
+function setupTournamentBracket() {
+  let currentTournament = null;
+  let currentMatches = [];
+  let draggedParticipant = null;
+
+  // Close modal handler (if needed)
+  const backBtn = document.querySelector('button[onclick="window.history.back()"]');
+  if (backBtn) {
+    backBtn.onclick = (e) => {
+      e.preventDefault();
+      loadSection('manage-tournaments');
+    };
+  }
+
+  // Load bracket
+  loadBracket();
+
+  async function loadBracket() {
+    const tournamentId = currentBracketTournamentId;
+    
+    if (!tournamentId) {
+      showNotification('No tournament ID provided', 'error');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        `/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php?action=tournament-bracket&tournament_id=${tournamentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        currentTournament = data.tournament;
+        currentMatches = data.matches;
+
+        document.getElementById("tournamentName").textContent =
+          "Bracket - " + (currentTournament.name || "Tournament");
+
+        if (currentMatches.length === 0) {
+          showEmptyState();
+        } else {
+          renderBracket();
+        }
+      } else {
+        throw new Error(data.message || "Failed to load bracket");
+      }
+    } catch (error) {
+      console.error("Error loading bracket:", error);
+      showNotification(error.message, "error");
+    } finally {
+      document.getElementById("loadingState")?.classList.add("hidden");
+    }
+  }
+
+  function showEmptyState() {
+    document.getElementById("emptyState")?.classList.remove("hidden");
+    document.getElementById("generateBracketBtn")?.classList.remove("hidden");
+  }
+
+  // Global generate bracket function
+  window.generateBracket = async function () {
+    if (
+      !confirm("Generate bracket for this tournament? This cannot be undone.")
+    ) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "generate-bracket",
+            tournament_id: currentBracketTournamentId,
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification("Bracket generated successfully!", "success");
+        document.getElementById("emptyState")?.classList.add("hidden");
+        document.getElementById("generateBracketBtn")?.classList.add("hidden");
+        loadBracket();
+      } else {
+        throw new Error(data.message || "Failed to generate bracket");
+      }
+    } catch (error) {
+      console.error("Error generating bracket:", error);
+      showNotification(error.message, "error");
+    }
+  };
+
+  // Setup generate button
+  const generateBtn = document.getElementById("generateBracketBtn");
+  if (generateBtn) {
+    generateBtn.addEventListener("click", window.generateBracket);
+  }
+
+  function renderBracket() {
+    const container = document.getElementById("bracketView");
+    if (!container) return;
+
+    document.getElementById("bracketContainer")?.classList.remove("hidden");
+
+    // Group matches by round
+    const rounds = {};
+    currentMatches.forEach((match) => {
+      if (!rounds[match.round_number]) {
+        rounds[match.round_number] = [];
+      }
+      rounds[match.round_number].push(match);
+    });
+
+    const maxRound = Math.max(...Object.keys(rounds).map(Number));
+
+    let html = '<div class="flex items-start">';
+
+    for (let roundNum = 1; roundNum <= maxRound; roundNum++) {
+      const matches = rounds[roundNum] || [];
+      const roundName = getRoundName(roundNum, maxRound);
+
+      html += `
+        <div class="bracket-round">
+          <h3 class="text-lg font-bold text-cyan-400 mb-4 text-center">${roundName}</h3>
+      `;
+
+      matches.forEach((match) => {
+        html += renderMatch(match);
+      });
+
+      html += "</div>";
+    }
+
+    html += "</div>";
+    container.innerHTML = html;
+
+    // Setup drag and drop
+    setupDragAndDrop();
+  }
+
+  function renderMatch(match) {
+    const isCompleted = match.match_status === "completed";
+    const isBye = match.match_status === "bye";
+
+    const p1Name =
+      match.participant1_team_name || match.participant1_name || "TBD";
+    const p2Name =
+      match.participant2_team_name || match.participant2_name || "TBD";
+
+    const p1IsWinner = match.winner_id && match.winner_id == match.participant1_id;
+    const p2IsWinner = match.winner_id && match.winner_id == match.participant2_id;
+
+    return `
+      <div class="bracket-match ${isCompleted ? "completed" : ""} ${
+      isBye ? "bye" : ""
+    }" data-match-id="${match.id}">
+        <div class="match-round-label">Match ${match.match_number}</div>
+        <div class="bracket-participant ${p1IsWinner ? "winner" : ""} ${
+      !match.participant1_id ? "empty" : ""
+    }"
+             draggable="${match.participant1_id ? "true" : "false"}"
+             data-participant-id="${match.participant1_id || ""}"
+             data-match-id="${match.id}">
+          ${escapeHtml(p1Name)}
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="bracket-participant ${p2IsWinner ? "winner" : ""} ${
+      !match.participant2_id ? "empty" : ""
+    }"
+             draggable="${match.participant2_id ? "true" : "false"}"
+             data-participant-id="${match.participant2_id || ""}"
+             data-match-id="${match.id}">
+          ${escapeHtml(p2Name)}
+        </div>
+      </div>
+    `;
+  }
+
+  function setupDragAndDrop() {
+    const participants = document.querySelectorAll(
+      '.bracket-participant[draggable="true"]'
+    );
+
+    participants.forEach((participant) => {
+      participant.addEventListener("dragstart", handleDragStart);
+      participant.addEventListener("dragend", handleDragEnd);
+      participant.addEventListener("dragover", handleDragOver);
+      participant.addEventListener("drop", handleDrop);
+    });
+  }
+
+  function handleDragStart(e) {
+    draggedParticipant = {
+      participantId: e.target.dataset.participantId,
+      matchId: e.target.dataset.matchId,
+    };
+    e.target.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragEnd(e) {
+    e.target.classList.remove("dragging");
+    document.querySelectorAll(".drop-zone").forEach((el) => {
+      el.classList.remove("drop-zone");
+    });
+  }
+
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+
+    // Only allow drop on empty slots or completed matches in the same match
+    if (
+      draggedParticipant &&
+      e.target.classList.contains("bracket-participant")
+    ) {
+      const targetMatchId = e.target.closest(".bracket-match")?.dataset.matchId;
+      if (targetMatchId === draggedParticipant.matchId) {
+        e.target.classList.add("drop-zone");
+        e.dataTransfer.dropEffect = "move";
+      }
+    }
+
+    return false;
+  }
+
+  async function handleDrop(e) {
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    e.target.classList.remove("drop-zone");
+
+    if (!draggedParticipant) return false;
+
+    const targetMatchId = e.target.closest(".bracket-match")?.dataset.matchId;
+
+    // Only allow setting winner within the same match
+    if (targetMatchId === draggedParticipant.matchId) {
+      await setMatchWinner(
+        draggedParticipant.matchId,
+        draggedParticipant.participantId
+      );
+    }
+
+    return false;
+  }
+
+  async function setMatchWinner(matchId, winnerId) {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "set-match-winner",
+            match_id: matchId,
+            winner_id: winnerId,
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification("Winner advanced to next round!", "success");
+        loadBracket();
+      } else {
+        throw new Error(data.message || "Failed to set winner");
+      }
+    } catch (error) {
+      console.error("Error setting winner:", error);
+      showNotification(error.message, "error");
+    }
+  }
+
+  function getRoundName(roundNum, maxRound) {
+    const roundsFromEnd = maxRound - roundNum;
+
+    if (roundsFromEnd === 0) return "Finals";
+    if (roundsFromEnd === 1) return "Semi-Finals";
+    if (roundsFromEnd === 2) return "Quarter-Finals";
+
+    return `Round ${roundNum}`;
   }
 
   function escapeHtml(text) {
