@@ -97,39 +97,92 @@ try {
                 // Get tournaments for current user
                 $user = $authMiddleware->requireAuth();
 
-                // Tournaments user is participating in
-                $participatingQuery = "SELECT t.*, tp.registration_status, tp.registered_at 
+                // Tournaments user is participating in with team info
+                $participatingQuery = "SELECT t.*, tp.registration_status, tp.registered_at,
+                                      COUNT(DISTINCT tp2.id) as registered_participants,
+                                      tt.team_name, tt.team_tag
                                       FROM tournaments t 
                                       INNER JOIN tournament_participants tp ON t.id = tp.tournament_id 
+                                      LEFT JOIN tournament_participants tp2 ON t.id = tp2.tournament_id AND tp2.registration_status = 'confirmed'
+                                      LEFT JOIN tournament_team_members ttm ON tp.user_id = ttm.user_id
+                                      LEFT JOIN tournament_teams tt ON ttm.team_id = tt.id AND tt.tournament_id = t.id
                                       WHERE tp.user_id = :user_id 
+                                      GROUP BY t.id, tp.id, tt.id
                                       ORDER BY t.start_date DESC";
                 $stmt = $db->prepare($participatingQuery);
                 $userId = $user['user_id'];
                 $stmt->bindParam(':user_id', $userId);
                 $stmt->execute();
-                $participating = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                // Tournaments user is organizing
-                $organizing = [];
-                $roles = array_column($user['roles'], 'role_name');
-                if (in_array('Organizer', $roles) || in_array('Admin', $roles)) {
-                    $organizingQuery = "SELECT t.*, 
-                                       (SELECT COUNT(*) FROM tournament_participants tp 
-                                        WHERE tp.tournament_id = t.id AND tp.registration_status = 'confirmed') as participant_count
-                                       FROM tournaments t 
-                                       WHERE t.organizer_id = :user_id 
-                                       ORDER BY t.created_at DESC";
-                    $orgStmt = $db->prepare($organizingQuery);
-                    $userId = $user['user_id'];
-                    $orgStmt->bindParam(':user_id', $userId);
-                    $orgStmt->execute();
-                    $organizing = $orgStmt->fetchAll(PDO::FETCH_ASSOC);
-                }
+                $tournaments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 echo json_encode([
                     "success" => true,
-                    "participating" => $participating,
-                    "organizing" => $organizing
+                    "tournaments" => $tournaments
+                ]);
+            } elseif ($action === 'my-teams') {
+                // Get teams where user is captain
+                $user = $authMiddleware->requireAuth();
+                
+                $query = "SELECT tt.*, t.name as tournament_name, t.status as tournament_status
+                         FROM tournament_teams tt
+                         INNER JOIN tournaments t ON tt.tournament_id = t.id
+                         WHERE tt.captain_user_id = :user_id
+                         ORDER BY tt.created_at DESC";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':user_id', $user['user_id']);
+                $stmt->execute();
+                $teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode([
+                    "success" => true,
+                    "teams" => $teams
+                ]);
+            } elseif ($action === 'team-members' && isset($_GET['team_id'])) {
+                // Get team members
+                $user = $authMiddleware->requireAuth();
+                
+                $query = "SELECT ttm.*, u.username
+                         FROM tournament_team_members ttm
+                         INNER JOIN users u ON ttm.user_id = u.id
+                         WHERE ttm.team_id = :team_id
+                         ORDER BY 
+                           CASE ttm.role 
+                             WHEN 'captain' THEN 1
+                             WHEN 'co_captain' THEN 2
+                             ELSE 3
+                           END, ttm.joined_at";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':team_id', $_GET['team_id']);
+                $stmt->execute();
+                $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode([
+                    "success" => true,
+                    "members" => $members
+                ]);
+            } elseif ($action === 'notifications') {
+                // Get user notifications
+                $user = $authMiddleware->requireAuth();
+                
+                $query = "SELECT tn.*, t.name as tournament_name
+                         FROM tournament_notifications tn
+                         INNER JOIN tournaments t ON tn.tournament_id = t.id
+                         WHERE (tn.target_audience = 'all' OR 
+                               (tn.target_audience = 'participants' AND EXISTS (
+                                   SELECT 1 FROM tournament_participants tp 
+                                   WHERE tp.tournament_id = tn.tournament_id AND tp.user_id = :user_id
+                               )) OR
+                               (tn.target_audience = 'specific_user' AND tn.target_user_id = :user_id))
+                         ORDER BY tn.created_at DESC
+                         LIMIT 50";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':user_id', $user['user_id']);
+                $stmt->execute();
+                $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode([
+                    "success" => true,
+                    "notifications" => $notifications
                 ]);
             } elseif ($action === 'leaderboard' && isset($_GET['tournament_id'])) {
                 // Get tournament leaderboard
@@ -539,6 +592,202 @@ try {
                 echo json_encode([
                     "success" => true,
                     "message" => "Tournament status updated successfully"
+                ]);
+            } elseif ($action === 'withdraw') {
+                // Withdraw from tournament
+                $user = $authMiddleware->requireAuth();
+                
+                if (!isset($data['tournament_id'])) {
+                    throw new Exception('Tournament ID is required');
+                }
+                
+                $tournamentId = $data['tournament_id'];
+                
+                // Check if user is registered
+                $checkQuery = "SELECT tp.*, t.status FROM tournament_participants tp
+                              INNER JOIN tournaments t ON tp.tournament_id = t.id
+                              WHERE tp.tournament_id = :tournament_id AND tp.user_id = :user_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':tournament_id', $tournamentId);
+                $checkStmt->bindParam(':user_id', $user['user_id']);
+                $checkStmt->execute();
+                $participant = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$participant) {
+                    throw new Exception('You are not registered for this tournament');
+                }
+                
+                // Cannot withdraw from ongoing or completed tournaments
+                if ($participant['status'] === 'ongoing' || $participant['status'] === 'completed') {
+                    throw new Exception('Cannot withdraw from ongoing or completed tournaments');
+                }
+                
+                // Update participant status
+                $withdrawQuery = "UPDATE tournament_participants 
+                                 SET registration_status = 'withdrawn'
+                                 WHERE tournament_id = :tournament_id AND user_id = :user_id";
+                $withdrawStmt = $db->prepare($withdrawQuery);
+                $withdrawStmt->bindParam(':tournament_id', $tournamentId);
+                $withdrawStmt->bindParam(':user_id', $user['user_id']);
+                $withdrawStmt->execute();
+                
+                // Decrement participant count
+                $updateCountQuery = "UPDATE tournaments 
+                                    SET current_participants = current_participants - 1
+                                    WHERE id = :tournament_id AND current_participants > 0";
+                $updateCountStmt = $db->prepare($updateCountQuery);
+                $updateCountStmt->bindParam(':tournament_id', $tournamentId);
+                $updateCountStmt->execute();
+                
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Successfully withdrawn from tournament"
+                ]);
+            } elseif ($action === 'add-team-member') {
+                // Add member to team (captain only)
+                $user = $authMiddleware->requireAuth();
+                
+                if (!isset($data['team_id']) || !isset($data['username'])) {
+                    throw new Exception('Team ID and username are required');
+                }
+                
+                // Verify team exists and user is captain
+                $teamQuery = "SELECT * FROM tournament_teams WHERE id = :team_id AND captain_user_id = :user_id";
+                $teamStmt = $db->prepare($teamQuery);
+                $teamStmt->bindParam(':team_id', $data['team_id']);
+                $teamStmt->bindParam(':user_id', $user['user_id']);
+                $teamStmt->execute();
+                $team = $teamStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$team) {
+                    throw new Exception('Team not found or you are not the captain');
+                }
+                
+                // Find user by username
+                $userQuery = "SELECT id FROM users WHERE username = :username";
+                $userStmt = $db->prepare($userQuery);
+                $userStmt->bindParam(':username', $data['username']);
+                $userStmt->execute();
+                $newMember = $userStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$newMember) {
+                    throw new Exception('User not found');
+                }
+                
+                // Check if user is already in team
+                $checkQuery = "SELECT * FROM tournament_team_members WHERE team_id = :team_id AND user_id = :user_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':team_id', $data['team_id']);
+                $checkStmt->bindParam(':user_id', $newMember['id']);
+                $checkStmt->execute();
+                
+                if ($checkStmt->rowCount() > 0) {
+                    throw new Exception('User is already in this team');
+                }
+                
+                $db->beginTransaction();
+                
+                try {
+                    // Add to team
+                    $addQuery = "INSERT INTO tournament_team_members (team_id, user_id, role) 
+                                VALUES (:team_id, :user_id, 'member')";
+                    $addStmt = $db->prepare($addQuery);
+                    $addStmt->bindParam(':team_id', $data['team_id']);
+                    $addStmt->bindParam(':user_id', $newMember['id']);
+                    $addStmt->execute();
+                    
+                    // Register user for tournament if not already registered
+                    $checkRegQuery = "SELECT * FROM tournament_participants 
+                                     WHERE tournament_id = :tournament_id AND user_id = :user_id";
+                    $checkRegStmt = $db->prepare($checkRegQuery);
+                    $checkRegStmt->bindParam(':tournament_id', $team['tournament_id']);
+                    $checkRegStmt->bindParam(':user_id', $newMember['id']);
+                    $checkRegStmt->execute();
+                    
+                    if ($checkRegStmt->rowCount() == 0) {
+                        $regQuery = "INSERT INTO tournament_participants 
+                                    (tournament_id, user_id, registration_status, payment_status)
+                                    VALUES (:tournament_id, :user_id, 'confirmed', 'pending')";
+                        $regStmt = $db->prepare($regQuery);
+                        $regStmt->bindParam(':tournament_id', $team['tournament_id']);
+                        $regStmt->bindParam(':user_id', $newMember['id']);
+                        $regStmt->execute();
+                    }
+                    
+                    $db->commit();
+                    
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "Member added successfully"
+                    ]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
+            } elseif ($action === 'remove-team-member') {
+                // Remove member from team (captain only)
+                $user = $authMiddleware->requireAuth();
+                
+                if (!isset($data['team_id']) || !isset($data['member_id'])) {
+                    throw new Exception('Team ID and member ID are required');
+                }
+                
+                // Verify team exists and user is captain
+                $teamQuery = "SELECT * FROM tournament_teams WHERE id = :team_id AND captain_user_id = :user_id";
+                $teamStmt = $db->prepare($teamQuery);
+                $teamStmt->bindParam(':team_id', $data['team_id']);
+                $teamStmt->bindParam(':user_id', $user['user_id']);
+                $teamStmt->execute();
+                $team = $teamStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$team) {
+                    throw new Exception('Team not found or you are not the captain');
+                }
+                
+                // Cannot remove captain
+                $memberQuery = "SELECT * FROM tournament_team_members WHERE id = :member_id AND team_id = :team_id";
+                $memberStmt = $db->prepare($memberQuery);
+                $memberStmt->bindParam(':member_id', $data['member_id']);
+                $memberStmt->bindParam(':team_id', $data['team_id']);
+                $memberStmt->execute();
+                $member = $memberStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$member) {
+                    throw new Exception('Member not found in this team');
+                }
+                
+                if ($member['role'] === 'captain') {
+                    throw new Exception('Cannot remove captain from team');
+                }
+                
+                // Remove from team
+                $removeQuery = "DELETE FROM tournament_team_members WHERE id = :member_id";
+                $removeStmt = $db->prepare($removeQuery);
+                $removeStmt->bindParam(':member_id', $data['member_id']);
+                $removeStmt->execute();
+                
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Member removed successfully"
+                ]);
+            } elseif ($action === 'mark-notification-read') {
+                // Mark notification as read
+                $user = $authMiddleware->requireAuth();
+                
+                if (!isset($data['notification_id'])) {
+                    throw new Exception('Notification ID is required');
+                }
+                
+                $updateQuery = "UPDATE tournament_notifications 
+                               SET is_read = 1
+                               WHERE id = :notification_id";
+                $updateStmt = $db->prepare($updateQuery);
+                $updateStmt->bindParam(':notification_id', $data['notification_id']);
+                $updateStmt->execute();
+                
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Notification marked as read"
                 ]);
             } else {
                 throw new Exception('Invalid action');
