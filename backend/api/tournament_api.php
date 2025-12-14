@@ -179,13 +179,13 @@ try {
                     $query = "INSERT INTO tournaments 
                             (organizer_id, name, description, game_type, format, tournament_size, 
                              max_participants, rules, match_rules, scoring_system, entry_fee, 
-                             is_public, is_featured, is_team_based, registration_start, registration_deadline, 
+                             is_public, is_featured, is_team_based, team_size, registration_start, registration_deadline, 
                              allow_late_registration, start_date, end_date, estimated_duration_hours, 
                              status, visibility)
                             VALUES 
                             (:organizer_id, :name, :description, :game_type, :format, :tournament_size,
                              :max_participants, :rules, :match_rules, :scoring_system, :entry_fee,
-                             :is_public, :is_featured, :is_team_based, :registration_start, :registration_deadline,
+                             :is_public, :is_featured, :is_team_based, :team_size, :registration_start, :registration_deadline,
                              :allow_late_registration, :start_date, :end_date, :estimated_duration_hours,
                              :status, :visibility)";
 
@@ -203,6 +203,7 @@ try {
                     $isPublic = $data['is_public'] ?? 1;
                     $isFeatured = $data['is_featured'] ?? 0;
                     $isTeamBased = $data['is_team_based'] ?? 0;
+                    $teamSize = $data['team_size'] ?? null;
                     $registrationStart = $data['registration_start'] ?? null;
                     $allowLateReg = $data['allow_late_registration'] ?? 0;
                     $endDate = $data['end_date'] ?? null;
@@ -224,6 +225,7 @@ try {
                     $stmt->bindParam(':is_public', $isPublic);
                     $stmt->bindParam(':is_featured', $isFeatured);
                     $stmt->bindParam(':is_team_based', $isTeamBased);
+                    $stmt->bindParam(':team_size', $teamSize);
                     $stmt->bindParam(':registration_start', $registrationStart);
                     $stmt->bindParam(':registration_deadline', $data['registration_deadline']);
                     $stmt->bindParam(':allow_late_registration', $allowLateReg);
@@ -291,6 +293,11 @@ try {
                     throw new Exception('Tournament not found');
                 }
 
+                // Prevent organizers from joining their own tournaments
+                if ($tournament['organizer_id'] == $user['user_id']) {
+                    throw new Exception('You cannot join your own tournament');
+                }
+
                 if ($tournament['status'] !== 'open') {
                     throw new Exception('Tournament is not open for registration');
                 }
@@ -344,12 +351,62 @@ try {
                         $memberStmt->bindParam(':team_id', $teamId);
                         $memberStmt->bindParam(':user_id', $userId);
                         $memberStmt->execute();
+                        
+                        // Add team members if provided
+                        if (isset($data['team_members']) && is_array($data['team_members'])) {
+                            foreach ($data['team_members'] as $memberUsername) {
+                                $memberUsername = trim($memberUsername);
+                                if (empty($memberUsername)) continue;
+                                
+                                // Find user by username
+                                $userQuery = "SELECT id FROM users WHERE username = :username";
+                                $userStmt = $db->prepare($userQuery);
+                                $userStmt->bindParam(':username', $memberUsername);
+                                $userStmt->execute();
+                                $memberUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+                                
+                                if (!$memberUser) {
+                                    throw new Exception("User '$memberUsername' not found");
+                                }
+                                
+                                $memberUserId = $memberUser['id'];
+                                
+                                // Check if member already registered for tournament
+                                $memberCheckQuery = "SELECT * FROM tournament_participants 
+                                                    WHERE tournament_id = :tournament_id AND user_id = :user_id";
+                                $memberCheckStmt = $db->prepare($memberCheckQuery);
+                                $memberCheckStmt->bindParam(':tournament_id', $tournamentId);
+                                $memberCheckStmt->bindParam(':user_id', $memberUserId);
+                                $memberCheckStmt->execute();
+                                
+                                if ($memberCheckStmt->rowCount() > 0) {
+                                    throw new Exception("User '$memberUsername' is already registered for this tournament");
+                                }
+                                
+                                // Add member to team
+                                $teamMemberQuery = "INSERT INTO tournament_team_members 
+                                                   (team_id, user_id, role) VALUES (:team_id, :user_id, 'member')";
+                                $teamMemberStmt = $db->prepare($teamMemberQuery);
+                                $teamMemberStmt->bindParam(':team_id', $teamId);
+                                $teamMemberStmt->bindParam(':user_id', $memberUserId);
+                                $teamMemberStmt->execute();
+                                
+                                // Register team member for tournament
+                                $memberRegQuery = "INSERT INTO tournament_participants 
+                                                  (tournament_id, user_id, registration_status, payment_status)
+                                                  VALUES (:tournament_id, :user_id, 'confirmed', 'pending')";
+                                $memberRegStmt = $db->prepare($memberRegQuery);
+                                $memberRegStmt->bindParam(':tournament_id', $tournamentId);
+                                $memberRegStmt->bindParam(':user_id', $memberUserId);
+                                $memberRegStmt->execute();
+                            }
+                        }
                     } elseif (isset($data['team_id'])) {
                         // Join existing team
                         $teamId = $data['team_id'];
                     }
 
-                    // Register participant
+                    // Register participant (captain)
                     $notes = $data['notes'] ?? null;
                     $registerQuery = "INSERT INTO tournament_participants 
                                      (tournament_id, user_id, registration_status, payment_status, registration_notes)

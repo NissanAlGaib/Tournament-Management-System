@@ -137,19 +137,38 @@
                     </div>
                 </div>
 
-                <div>
-                    <label for="is_team_based" class="block text-sm font-medium text-gray-300 mb-2">
-                        Tournament Type <span class="text-red-400">*</span>
-                    </label>
-                    <select id="is_team_based" name="is_team_based" required
-                        class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all">
-                        <option value="0" selected>Solo/Individual Tournament</option>
-                        <option value="1">Team-Based Tournament</option>
-                    </select>
-                    <p class="text-xs text-gray-400 mt-1">
-                        <span class="inline-block mr-2">🏃 Solo: Players compete individually</span><br>
-                        <span class="inline-block">👥 Team: Players form teams to compete</span>
-                    </p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="is_team_based" class="block text-sm font-medium text-gray-300 mb-2">
+                            Tournament Type <span class="text-red-400">*</span>
+                        </label>
+                        <select id="is_team_based" name="is_team_based" required
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all">
+                            <option value="0" selected>Solo/Individual</option>
+                            <option value="1">Team-Based</option>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">
+                            <span class="inline-block">🏃 Solo or 👥 Team</span>
+                        </p>
+                    </div>
+
+                    <div id="teamSizeContainer" class="hidden">
+                        <label for="team_size" class="block text-sm font-medium text-gray-300 mb-2">
+                            Team Size <span class="text-red-400">*</span>
+                        </label>
+                        <select id="team_size" name="team_size"
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all">
+                            <option value="2">2 Players</option>
+                            <option value="3">3 Players</option>
+                            <option value="4">4 Players</option>
+                            <option value="5" selected>5 Players</option>
+                            <option value="6">6 Players</option>
+                            <option value="7">7 Players</option>
+                            <option value="8">8 Players</option>
+                            <option value="10">10 Players</option>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Players per team</p>
+                    </div>
                 </div>
 
                 <div>
@@ -319,6 +338,20 @@
             });
         }
 
+        // Tournament type change handler - show/hide team size
+        const isTeamBasedSelect = document.getElementById('is_team_based');
+        const teamSizeContainer = document.getElementById('teamSizeContainer');
+        
+        if (isTeamBasedSelect && teamSizeContainer) {
+            isTeamBasedSelect.addEventListener('change', function() {
+                if (this.value === '1') {
+                    teamSizeContainer.classList.remove('hidden');
+                } else {
+                    teamSizeContainer.classList.add('hidden');
+                }
+            });
+        }
+
         // Add prize functionality
         const addPrizeBtn = document.getElementById('addPrizeBtn');
         if (addPrizeBtn) {
@@ -364,6 +397,12 @@
                     rules: document.getElementById('rules').value || '',
                     status: 'open'
                 };
+
+                // Add team size if team-based
+                if (formData.is_team_based === 1) {
+                    const teamSizeField = document.getElementById('team_size');
+                    formData.team_size = teamSizeField ? parseInt(teamSizeField.value) : 5;
+                }
 
                 // Collect prizes
                 const prizes = [];

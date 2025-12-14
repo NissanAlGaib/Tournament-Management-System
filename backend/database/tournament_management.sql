@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS `tournaments` (
   `is_public` tinyint(1) DEFAULT 1,
   `is_featured` tinyint(1) DEFAULT 0,
   `is_team_based` tinyint(1) DEFAULT 0,
+  `team_size` int(11) DEFAULT NULL COMMENT 'Number of players per team for team-based tournaments',
   
   -- Registration management
   `registration_start` datetime DEFAULT NULL,
