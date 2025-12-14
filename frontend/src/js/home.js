@@ -1634,7 +1634,9 @@ function setupManageTournaments() {
             </svg>
             Manage Participants
           </button>
-          <button onclick="window.viewTournamentBracket(${tournament.id})" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all">
+          <button onclick="window.viewTournamentBracket(${
+            tournament.id
+          })" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all">
             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
             </svg>
@@ -1965,9 +1967,9 @@ function setupManageTournaments() {
 let currentBracketTournamentId = null;
 
 // Global function to view tournament bracket
-window.viewTournamentBracket = function(tournamentId) {
+window.viewTournamentBracket = function (tournamentId) {
   currentBracketTournamentId = tournamentId;
-  loadSection('tournament-bracket');
+  loadSection("tournament-bracket");
 };
 
 function setupTournamentBracket() {
@@ -1976,11 +1978,13 @@ function setupTournamentBracket() {
   let draggedParticipant = null;
 
   // Close modal handler (if needed)
-  const backBtn = document.querySelector('button[onclick="window.history.back()"]');
+  const backBtn = document.querySelector(
+    'button[onclick="window.history.back()"]'
+  );
   if (backBtn) {
     backBtn.onclick = (e) => {
       e.preventDefault();
-      loadSection('manage-tournaments');
+      loadSection("manage-tournaments");
     };
   }
 
@@ -1989,9 +1993,9 @@ function setupTournamentBracket() {
 
   async function loadBracket() {
     const tournamentId = currentBracketTournamentId;
-    
+
     if (!tournamentId) {
-      showNotification('No tournament ID provided', 'error');
+      showNotification("No tournament ID provided", "error");
       return;
     }
 
@@ -2034,6 +2038,82 @@ function setupTournamentBracket() {
     document.getElementById("emptyState")?.classList.remove("hidden");
     document.getElementById("generateBracketBtn")?.classList.remove("hidden");
   }
+
+  // Global reset match function
+  window.resetMatch = async function (matchId) {
+    if (!confirm("Reset this match? The winner will be cleared.")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "reset-match",
+            match_id: matchId,
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification("Match reset successfully!", "success");
+        loadBracket();
+      } else {
+        throw new Error(data.message || "Failed to reset match");
+      }
+    } catch (error) {
+      console.error("Error resetting match:", error);
+      showNotification(error.message, "error");
+    }
+  };
+
+  // Global reset all matches function
+  window.resetAllMatches = async function () {
+    if (
+      !confirm(
+        "Reset ALL matches? All winners will be cleared. This cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "reset-all-matches",
+            tournament_id: currentBracketTournamentId,
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification("All matches reset successfully!", "success");
+        loadBracket();
+      } else {
+        throw new Error(data.message || "Failed to reset matches");
+      }
+    } catch (error) {
+      console.error("Error resetting matches:", error);
+      showNotification(error.message, "error");
+    }
+  };
 
   // Global generate bracket function
   window.generateBracket = async function () {
@@ -2097,8 +2177,22 @@ function setupTournamentBracket() {
     });
 
     const maxRound = Math.max(...Object.keys(rounds).map(Number));
+    const hasAnyWinners = currentMatches.some(
+      (m) => m.winner_id && m.match_status !== "bye"
+    );
 
-    let html = '<div class="flex items-start">';
+    let html = "";
+
+    // Add reset all button if there are any winners set
+    if (hasAnyWinners) {
+      html += `<div class="mb-4 text-right">
+        <button onclick="resetAllMatches()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">
+          ↺ Reset All Matches
+        </button>
+      </div>`;
+    }
+
+    html += '<div class="flex items-start">';
 
     for (let roundNum = 1; roundNum <= maxRound; roundNum++) {
       const matches = rounds[roundNum] || [];
@@ -2132,29 +2226,48 @@ function setupTournamentBracket() {
     const p2Name =
       match.participant2_team_name || match.participant2_name || "TBD";
 
-    const p1IsWinner = match.winner_id && match.winner_id == match.participant1_id;
-    const p2IsWinner = match.winner_id && match.winner_id == match.participant2_id;
+    const p1IsWinner =
+      match.winner_id && match.winner_id == match.participant1_id;
+    const p2IsWinner =
+      match.winner_id && match.winner_id == match.participant2_id;
+
+    const hasWinner = match.winner_id && !isBye;
 
     return `
       <div class="bracket-match ${isCompleted ? "completed" : ""} ${
       isBye ? "bye" : ""
-    }" data-match-id="${match.id}">
-        <div class="match-round-label">Match ${match.match_number}</div>
+    }" data-match-id="${match.id}" data-round="${match.round_number}">
+        <div class="match-round-label">
+          Match ${match.match_number}
+          ${
+            hasWinner
+              ? `<button onclick="resetMatch(${match.id})" class="ml-2 text-xs text-red-400 hover:text-red-300" title="Reset this match">↺</button>`
+              : ""
+          }
+        </div>
         <div class="bracket-participant ${p1IsWinner ? "winner" : ""} ${
-      !match.participant1_id ? "empty" : ""
+      !match.participant1_id ? "empty drop-target" : ""
     }"
-             draggable="${match.participant1_id ? "true" : "false"}"
+             draggable="${
+               match.participant1_id && !isCompleted ? "true" : "false"
+             }"
              data-participant-id="${match.participant1_id || ""}"
-             data-match-id="${match.id}">
+             data-participant-name="${escapeHtml(p1Name)}"
+             data-match-id="${match.id}"
+             data-round="${match.round_number}">
           ${escapeHtml(p1Name)}
         </div>
         <div class="vs-divider">VS</div>
         <div class="bracket-participant ${p2IsWinner ? "winner" : ""} ${
-      !match.participant2_id ? "empty" : ""
+      !match.participant2_id ? "empty drop-target" : ""
     }"
-             draggable="${match.participant2_id ? "true" : "false"}"
+             draggable="${
+               match.participant2_id && !isCompleted ? "true" : "false"
+             }"
              data-participant-id="${match.participant2_id || ""}"
-             data-match-id="${match.id}">
+             data-participant-name="${escapeHtml(p2Name)}"
+             data-match-id="${match.id}"
+             data-round="${match.round_number}">
           ${escapeHtml(p2Name)}
         </div>
       </div>
@@ -2162,25 +2275,35 @@ function setupTournamentBracket() {
   }
 
   function setupDragAndDrop() {
-    const participants = document.querySelectorAll(
+    const draggables = document.querySelectorAll(
       '.bracket-participant[draggable="true"]'
     );
+    const dropTargets = document.querySelectorAll(
+      ".bracket-participant.drop-target"
+    );
 
-    participants.forEach((participant) => {
+    draggables.forEach((participant) => {
       participant.addEventListener("dragstart", handleDragStart);
       participant.addEventListener("dragend", handleDragEnd);
-      participant.addEventListener("dragover", handleDragOver);
-      participant.addEventListener("drop", handleDrop);
+    });
+
+    dropTargets.forEach((target) => {
+      target.addEventListener("dragover", handleDragOver);
+      target.addEventListener("dragleave", handleDragLeave);
+      target.addEventListener("drop", handleDrop);
     });
   }
 
   function handleDragStart(e) {
     draggedParticipant = {
       participantId: e.target.dataset.participantId,
+      participantName: e.target.dataset.participantName,
       matchId: e.target.dataset.matchId,
+      roundNumber: parseInt(e.target.dataset.round),
     };
     e.target.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/html", e.target.innerHTML);
   }
 
   function handleDragEnd(e) {
@@ -2195,13 +2318,16 @@ function setupTournamentBracket() {
       e.preventDefault();
     }
 
-    // Only allow drop on empty slots or completed matches in the same match
+    // Allow drop only on empty slots in the next round
     if (
       draggedParticipant &&
-      e.target.classList.contains("bracket-participant")
+      e.target.classList.contains("bracket-participant") &&
+      e.target.classList.contains("empty")
     ) {
-      const targetMatchId = e.target.closest(".bracket-match")?.dataset.matchId;
-      if (targetMatchId === draggedParticipant.matchId) {
+      const targetRound = parseInt(e.target.dataset.round);
+
+      // Only allow dropping into the next round
+      if (targetRound === draggedParticipant.roundNumber + 1) {
         e.target.classList.add("drop-zone");
         e.dataTransfer.dropEffect = "move";
       }
@@ -2210,19 +2336,29 @@ function setupTournamentBracket() {
     return false;
   }
 
+  function handleDragLeave(e) {
+    if (e.target.classList.contains("bracket-participant")) {
+      e.target.classList.remove("drop-zone");
+    }
+  }
+
   async function handleDrop(e) {
     if (e.stopPropagation) {
       e.stopPropagation();
+    }
+    if (e.preventDefault) {
+      e.preventDefault();
     }
 
     e.target.classList.remove("drop-zone");
 
     if (!draggedParticipant) return false;
 
-    const targetMatchId = e.target.closest(".bracket-match")?.dataset.matchId;
+    const targetRound = parseInt(e.target.dataset.round);
 
-    // Only allow setting winner within the same match
-    if (targetMatchId === draggedParticipant.matchId) {
+    // Validate it's the next round
+    if (targetRound === draggedParticipant.roundNumber + 1) {
+      // Set this participant as the winner of their current match
       await setMatchWinner(
         draggedParticipant.matchId,
         draggedParticipant.participantId

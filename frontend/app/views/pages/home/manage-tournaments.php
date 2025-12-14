@@ -48,7 +48,7 @@ require_once __DIR__ . '/../../../includes/header.php';
                 </svg>
             </button>
         </div>
-        
+
         <div class="flex-1 overflow-y-auto p-6">
             <div id="participantsContent">
                 <!-- Participants will be loaded here -->
@@ -58,15 +58,15 @@ require_once __DIR__ . '/../../../includes/header.php';
 </div>
 
 <script>
-(function() {
-    let currentTournaments = [];
+    (function() {
+        let currentTournaments = [];
 
-    // Show notification toast
-    function showNotification(message, type = 'success') {
-        const toast = document.getElementById('notificationToast');
-        const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-        
-        toast.innerHTML = `
+        // Show notification toast
+        function showNotification(message, type = 'success') {
+            const toast = document.getElementById('notificationToast');
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+
+            toast.innerHTML = `
             <div class="${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 animate-slide-in">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     ${type === 'success' ? 
@@ -77,49 +77,49 @@ require_once __DIR__ . '/../../../includes/header.php';
                 <span class="font-medium">${escapeHtml(message)}</span>
             </div>
         `;
-        toast.classList.remove('hidden');
-        
-        setTimeout(() => {
-            toast.classList.add('hidden');
-        }, 3000);
-    }
+            toast.classList.remove('hidden');
 
-    // Load tournaments
-    async function loadTournaments() {
-        try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>?action=organized-tournaments', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Load tournaments
+        async function loadTournaments() {
+            try {
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>?action=organized-tournaments', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentTournaments = data.tournaments;
+                    renderTournaments(data.tournaments);
+                } else {
+                    throw new Error(data.message || 'Failed to load tournaments');
                 }
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                currentTournaments = data.tournaments;
-                renderTournaments(data.tournaments);
-            } else {
-                throw new Error(data.message || 'Failed to load tournaments');
+            } catch (error) {
+                console.error('Error loading tournaments:', error);
+                showNotification(error.message, 'error');
             }
-        } catch (error) {
-            console.error('Error loading tournaments:', error);
-            showNotification(error.message, 'error');
-        }
-    }
-
-    // Render tournaments
-    function renderTournaments(tournaments) {
-        document.getElementById('loadingState').classList.add('hidden');
-        
-        if (tournaments.length === 0) {
-            document.getElementById('emptyState').classList.remove('hidden');
-            return;
         }
 
-        const container = document.getElementById('tournamentsList');
-        container.classList.remove('hidden');
-        
-        container.innerHTML = tournaments.map(tournament => `
+        // Render tournaments
+        function renderTournaments(tournaments) {
+            document.getElementById('loadingState').classList.add('hidden');
+
+            if (tournaments.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
+
+            const container = document.getElementById('tournamentsList');
+            container.classList.remove('hidden');
+
+            container.innerHTML = tournaments.map(tournament => `
             <div class="bg-gray-800 rounded-xl border border-gray-700 p-6 hover:border-cyan-500/50 transition-all">
                 <div class="flex justify-between items-start mb-4">
                     <div>
@@ -177,48 +177,48 @@ require_once __DIR__ . '/../../../includes/header.php';
                 </div>
             </div>
         `).join('');
-    }
-
-    // View bracket
-    window.viewBracket = function(tournamentId) {
-        window.viewTournamentBracket(tournamentId);
-    };
-
-    // View participants
-    window.viewParticipants = async function(tournamentId) {
-        try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch(`<?php echo getBackendPath('api/tournament_api.php'); ?>?action=tournament-participants&tournament_id=${tournamentId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                showParticipantsModal(data.participants, tournamentId);
-            } else {
-                throw new Error(data.message || 'Failed to load participants');
-            }
-        } catch (error) {
-            console.error('Error loading participants:', error);
-            showNotification(error.message, 'error');
         }
-    };
 
-    // Show participants modal
-    function showParticipantsModal(participants, tournamentId) {
-        const modal = document.getElementById('participantsModal');
-        const content = document.getElementById('participantsContent');
-        
-        if (participants.length === 0) {
-            content.innerHTML = `
+        // View bracket
+        window.viewBracket = function(tournamentId) {
+            window.viewTournamentBracket(tournamentId);
+        };
+
+        // View participants
+        window.viewParticipants = async function(tournamentId) {
+            try {
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch(`<?php echo getBackendPath('api/tournament_api.php'); ?>?action=tournament-participants&tournament_id=${tournamentId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showParticipantsModal(data.participants, tournamentId);
+                } else {
+                    throw new Error(data.message || 'Failed to load participants');
+                }
+            } catch (error) {
+                console.error('Error loading participants:', error);
+                showNotification(error.message, 'error');
+            }
+        };
+
+        // Show participants modal
+        function showParticipantsModal(participants, tournamentId) {
+            const modal = document.getElementById('participantsModal');
+            const content = document.getElementById('participantsContent');
+
+            if (participants.length === 0) {
+                content.innerHTML = `
                 <div class="text-center py-8 text-gray-400">
                     No participants yet
                 </div>
             `;
-        } else {
-            content.innerHTML = `
+            } else {
+                content.innerHTML = `
                 <div class="space-y-3">
                     ${participants.map(participant => `
                         <div class="bg-gray-700/50 rounded-lg p-4 flex justify-between items-center">
@@ -255,114 +255,114 @@ require_once __DIR__ . '/../../../includes/header.php';
                     `).join('')}
                 </div>
             `;
-        }
-        
-        modal.classList.remove('hidden');
-    }
-
-    // Approve participant
-    window.approveParticipant = async function(participantId, tournamentId) {
-        if (!confirm('Are you sure you want to approve this participant?')) {
-            return;
-        }
-
-        try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    action: 'approve-participant',
-                    participant_id: participantId
-                })
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                showNotification('Participant approved successfully!', 'success');
-                viewParticipants(tournamentId); // Reload participants
-                loadTournaments(); // Reload tournament counts
-            } else {
-                throw new Error(data.message || 'Failed to approve participant');
             }
-        } catch (error) {
-            console.error('Error approving participant:', error);
-            showNotification(error.message, 'error');
-        }
-    };
 
-    // Reject participant
-    window.rejectParticipant = async function(participantId, tournamentId) {
-        if (!confirm('Are you sure you want to reject this participant?')) {
-            return;
+            modal.classList.remove('hidden');
         }
 
-        try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    action: 'reject-participant',
-                    participant_id: participantId
-                })
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                showNotification('Participant rejected successfully!', 'success');
-                viewParticipants(tournamentId); // Reload participants
-                loadTournaments(); // Reload tournament counts
-            } else {
-                throw new Error(data.message || 'Failed to reject participant');
+        // Approve participant
+        window.approveParticipant = async function(participantId, tournamentId) {
+            if (!confirm('Are you sure you want to approve this participant?')) {
+                return;
             }
-        } catch (error) {
-            console.error('Error rejecting participant:', error);
-            showNotification(error.message, 'error');
-        }
-    };
 
-    // View teams
-    window.viewTeams = async function(tournamentId) {
-        try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch(`<?php echo getBackendPath('api/tournament_api.php'); ?>?action=tournament-teams&tournament_id=${tournamentId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            try {
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'approve-participant',
+                        participant_id: participantId
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Participant approved successfully!', 'success');
+                    viewParticipants(tournamentId); // Reload participants
+                    loadTournaments(); // Reload tournament counts
+                } else {
+                    throw new Error(data.message || 'Failed to approve participant');
                 }
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                showTeamsModal(data.teams);
-            } else {
-                throw new Error(data.message || 'Failed to load teams');
+            } catch (error) {
+                console.error('Error approving participant:', error);
+                showNotification(error.message, 'error');
             }
-        } catch (error) {
-            console.error('Error loading teams:', error);
-            showNotification(error.message, 'error');
-        }
-    };
+        };
 
-    // Show teams modal
-    function showTeamsModal(teams) {
-        const modal = document.getElementById('participantsModal');
-        const content = document.getElementById('participantsContent');
-        
-        if (teams.length === 0) {
-            content.innerHTML = `
+        // Reject participant
+        window.rejectParticipant = async function(participantId, tournamentId) {
+            if (!confirm('Are you sure you want to reject this participant?')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'reject-participant',
+                        participant_id: participantId
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Participant rejected successfully!', 'success');
+                    viewParticipants(tournamentId); // Reload participants
+                    loadTournaments(); // Reload tournament counts
+                } else {
+                    throw new Error(data.message || 'Failed to reject participant');
+                }
+            } catch (error) {
+                console.error('Error rejecting participant:', error);
+                showNotification(error.message, 'error');
+            }
+        };
+
+        // View teams
+        window.viewTeams = async function(tournamentId) {
+            try {
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch(`<?php echo getBackendPath('api/tournament_api.php'); ?>?action=tournament-teams&tournament_id=${tournamentId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showTeamsModal(data.teams);
+                } else {
+                    throw new Error(data.message || 'Failed to load teams');
+                }
+            } catch (error) {
+                console.error('Error loading teams:', error);
+                showNotification(error.message, 'error');
+            }
+        };
+
+        // Show teams modal
+        function showTeamsModal(teams) {
+            const modal = document.getElementById('participantsModal');
+            const content = document.getElementById('participantsContent');
+
+            if (teams.length === 0) {
+                content.innerHTML = `
                 <div class="text-center py-8 text-gray-400">
                     No teams registered yet
                 </div>
             `;
-        } else {
-            content.innerHTML = `
+            } else {
+                content.innerHTML = `
                 <div class="space-y-3">
                     ${teams.map(team => `
                         <div class="bg-gray-700/50 rounded-lg p-4">
@@ -387,67 +387,67 @@ require_once __DIR__ . '/../../../includes/header.php';
                     `).join('')}
                 </div>
             `;
+            }
+
+            modal.classList.remove('hidden');
         }
-        
-        modal.classList.remove('hidden');
-    }
 
-    // Helper functions
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+        // Helper functions
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-    function getStatusBadgeClass(status) {
-        const classes = {
-            'draft': 'bg-gray-600 text-white',
-            'open': 'bg-green-600 text-white',
-            'registration_closed': 'bg-yellow-600 text-white',
-            'ongoing': 'bg-blue-600 text-white',
-            'completed': 'bg-purple-600 text-white',
-            'cancelled': 'bg-red-600 text-white'
-        };
-        return classes[status] || 'bg-gray-600 text-white';
-    }
+        function getStatusBadgeClass(status) {
+            const classes = {
+                'draft': 'bg-gray-600 text-white',
+                'open': 'bg-green-600 text-white',
+                'registration_closed': 'bg-yellow-600 text-white',
+                'ongoing': 'bg-blue-600 text-white',
+                'completed': 'bg-purple-600 text-white',
+                'cancelled': 'bg-red-600 text-white'
+            };
+            return classes[status] || 'bg-gray-600 text-white';
+        }
 
-    function getStatusText(status) {
-        const texts = {
-            'draft': 'Draft',
-            'open': 'Open',
-            'registration_closed': 'Closed',
-            'ongoing': 'Ongoing',
-            'completed': 'Completed',
-            'cancelled': 'Cancelled'
-        };
-        return texts[status] || status;
-    }
+        function getStatusText(status) {
+            const texts = {
+                'draft': 'Draft',
+                'open': 'Open',
+                'registration_closed': 'Closed',
+                'ongoing': 'Ongoing',
+                'completed': 'Completed',
+                'cancelled': 'Cancelled'
+            };
+            return texts[status] || status;
+        }
 
-    function getRegistrationBadgeClass(status) {
-        const classes = {
-            'pending': 'bg-yellow-600 text-white',
-            'confirmed': 'bg-green-600 text-white',
-            'rejected': 'bg-red-600 text-white',
-            'withdrawn': 'bg-gray-600 text-white',
-            'waitlist': 'bg-blue-600 text-white'
-        };
-        return classes[status] || 'bg-gray-600 text-white';
-    }
+        function getRegistrationBadgeClass(status) {
+            const classes = {
+                'pending': 'bg-yellow-600 text-white',
+                'confirmed': 'bg-green-600 text-white',
+                'rejected': 'bg-red-600 text-white',
+                'withdrawn': 'bg-gray-600 text-white',
+                'waitlist': 'bg-blue-600 text-white'
+            };
+            return classes[status] || 'bg-gray-600 text-white';
+        }
 
-    function showError(message) {
-        document.getElementById('loadingState').classList.add('hidden');
-        showNotification(message, 'error');
-    }
+        function showError(message) {
+            document.getElementById('loadingState').classList.add('hidden');
+            showNotification(message, 'error');
+        }
 
-    // Close modal
-    document.getElementById('closeParticipantsModal')?.addEventListener('click', () => {
-        document.getElementById('participantsModal').classList.add('hidden');
-    });
+        // Close modal
+        document.getElementById('closeParticipantsModal')?.addEventListener('click', () => {
+            document.getElementById('participantsModal').classList.add('hidden');
+        });
 
-    // Initialize
-    loadTournaments();
-})();
+        // Initialize
+        loadTournaments();
+    })();
 </script>
 
 <?php require_once __DIR__ . '/../../../includes/footer.php'; ?>
