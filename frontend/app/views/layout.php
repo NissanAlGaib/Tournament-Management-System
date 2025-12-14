@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tournament Management System</title>
-    <link rel="stylesheet" href="../src/output.css">
+    <link rel="stylesheet" href="../../src/output.css">
 </head>
 <body class="bg-gray-900 min-h-screen">
     <!-- Navigation -->
@@ -33,6 +33,6 @@
         <!-- Dynamic content will be loaded here -->
     </main>
 
-    <script src="../src/js/main.js"></script>
+    <script src="../../src/js/main.js"></script>
 </body>
 </html>
