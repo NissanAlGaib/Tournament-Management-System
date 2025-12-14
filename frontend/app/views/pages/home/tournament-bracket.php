@@ -367,7 +367,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             e.preventDefault();
         }
         
-        // Only allow drop on empty slots or completed matches in the same match
+        // Allow drop anywhere within the same match to set winner
         if (draggedParticipant && e.target.classList.contains('bracket-participant')) {
             const targetMatchId = e.target.closest('.bracket-match')?.dataset.matchId;
             if (targetMatchId === draggedParticipant.matchId) {

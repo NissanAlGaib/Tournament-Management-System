@@ -1131,6 +1131,7 @@ try {
                     // Generate first round matches
                     $matchNumber = 1;
                     $currentRound = 1;
+                    $byeMatches = []; // Track bye matches to advance winners
                     
                     // Pair up participants for first round
                     for ($i = 0; $i < $bracketSize; $i += 2) {
@@ -1143,8 +1144,8 @@ try {
                         }
                         
                         $insertQuery = "INSERT INTO matches 
-                                       (tournament_id, round_number, match_number, participant1_id, participant2_id, match_status)
-                                       VALUES (:tournament_id, :round_number, :match_number, :participant1_id, :participant2_id, :match_status)";
+                                       (tournament_id, round_number, match_number, participant1_id, participant2_id, match_status, winner_id)
+                                       VALUES (:tournament_id, :round_number, :match_number, :participant1_id, :participant2_id, :match_status, :winner_id)";
                         $insertStmt = $db->prepare($insertQuery);
                         $insertStmt->bindParam(':tournament_id', $tournamentId);
                         $insertStmt->bindParam(':round_number', $currentRound);
@@ -1152,10 +1153,32 @@ try {
                         $insertStmt->bindParam(':participant1_id', $participant1);
                         $insertStmt->bindParam(':participant2_id', $participant2);
                         
-                        // If only one participant, mark as bye
-                        $status = (!$participant1 || !$participant2) ? 'bye' : 'scheduled';
+                        // If only one participant, mark as bye and set them as winner
+                        if (!$participant1 || !$participant2) {
+                            $status = 'bye';
+                            $winnerId = $participant1 ?: $participant2;
+                        } else {
+                            $status = 'scheduled';
+                            $winnerId = null;
+                        }
                         $insertStmt->bindParam(':match_status', $status);
+                        $insertStmt->bindParam(':winner_id', $winnerId);
                         $insertStmt->execute();
+                        $matchId = $db->lastInsertId();
+                        
+                        // If bye match, advance winner to next round
+                        if ($status === 'bye' && $winnerId) {
+                            $nextRound = $currentRound + 1;
+                            $nextMatchNum = ceil($matchNumber / 2);
+                            
+                            // We'll set this after creating all first round matches
+                            $byeMatches[] = [
+                                'winner_id' => $winnerId,
+                                'next_round' => $nextRound,
+                                'next_match_num' => $nextMatchNum,
+                                'current_match_num' => $matchNumber
+                            ];
+                        }
                         
                         $matchNumber++;
                     }
@@ -1175,6 +1198,21 @@ try {
                             $insertStmt->execute();
                         }
                         $matchesInPreviousRound = $matchesInRound;
+                    }
+                    
+                    // Process bye matches - advance winners to next round
+                    foreach ($byeMatches as $bye) {
+                        $updateQuery = "UPDATE matches 
+                                       SET " . ($bye['current_match_num'] % 2 == 1 ? "participant1_id" : "participant2_id") . " = :winner_id
+                                       WHERE tournament_id = :tournament_id 
+                                       AND round_number = :round_number 
+                                       AND match_number = :match_number";
+                        $updateStmt = $db->prepare($updateQuery);
+                        $updateStmt->bindParam(':winner_id', $bye['winner_id']);
+                        $updateStmt->bindParam(':tournament_id', $tournamentId);
+                        $updateStmt->bindParam(':round_number', $bye['next_round']);
+                        $updateStmt->bindParam(':match_number', $bye['next_match_num']);
+                        $updateStmt->execute();
                     }
 
                     $db->commit();
@@ -1255,13 +1293,25 @@ try {
                     $nextMatch = $nextMatchStmt->fetch(PDO::FETCH_ASSOC);
 
                     if ($nextMatch) {
-                        // Determine which slot in next match (odd match numbers go to participant1, even to participant2)
+                        // Determine which slot in next match
+                        // Odd match numbers go to participant1, even to participant2
+                        // But if slot is already occupied, use the other slot
                         if ($currentMatchNum % 2 == 1) {
-                            // Odd match number - winner goes to participant1_id
-                            $updateNextQuery = "UPDATE matches SET participant1_id = :winner_id WHERE id = :next_match_id";
+                            // Odd match number - winner should go to participant1_id
+                            if (!$nextMatch['participant1_id']) {
+                                $updateNextQuery = "UPDATE matches SET participant1_id = :winner_id WHERE id = :next_match_id";
+                            } else {
+                                // Slot occupied, use participant2
+                                $updateNextQuery = "UPDATE matches SET participant2_id = :winner_id WHERE id = :next_match_id";
+                            }
                         } else {
-                            // Even match number - winner goes to participant2_id
-                            $updateNextQuery = "UPDATE matches SET participant2_id = :winner_id WHERE id = :next_match_id";
+                            // Even match number - winner should go to participant2_id
+                            if (!$nextMatch['participant2_id']) {
+                                $updateNextQuery = "UPDATE matches SET participant2_id = :winner_id WHERE id = :next_match_id";
+                            } else {
+                                // Slot occupied, use participant1
+                                $updateNextQuery = "UPDATE matches SET participant1_id = :winner_id WHERE id = :next_match_id";
+                            }
                         }
                         $updateNextStmt = $db->prepare($updateNextQuery);
                         $updateNextStmt->bindParam(':winner_id', $data['winner_id']);
