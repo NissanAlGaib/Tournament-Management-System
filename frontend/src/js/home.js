@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
   setupNotificationCenter();
 
   // Apply role-based visibility
-  Auth.applyRoleBasedVisibility();
+  applyRoleBasedVisibility();
 
   // Load dashboard by default
   loadSection("dashboard");
@@ -65,6 +65,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Load section dynamically using AJAX
 function loadSection(sectionName) {
+  // Check permissions for restricted sections
+  if (sectionName === "manage-tournaments") {
+    const user = Auth.getCurrentUser();
+    const isOrganizer = Auth.isOrganizer();
+    const isAdmin = Auth.isAdmin();
+
+    if (!isOrganizer && !isAdmin) {
+      homeContent.innerHTML = `
+        <div class="max-w-2xl mx-auto px-4 py-16">
+          <div class="bg-red-900/20 border border-red-500/50 rounded-2xl p-8 text-center">
+            <svg class="w-20 h-20 mx-auto mb-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <h2 class="text-2xl font-bold text-white mb-4">Access Restricted</h2>
+            <p class="text-gray-300 mb-6">
+              This page is only accessible to users with Organizer or Admin roles.
+            </p>
+            <p class="text-gray-400 mb-8">
+              You currently have the following roles: <strong class="text-cyan-400">${
+                user?.roles?.map((r) => r.role_name).join(", ") || "None"
+              }</strong>
+            </p>
+            <button onclick="loadSection('profile')" class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all">
+              Request Organizer Role
+            </button>
+          </div>
+        </div>
+      `;
+      currentSection = sectionName;
+      updateActiveNav(sectionName);
+      return;
+    }
+  }
+
   const sectionPath = `${sectionName}.php`;
 
   fetch(sectionPath)
@@ -92,6 +126,8 @@ function loadSection(sectionName) {
         setTimeout(() => setupMyTournaments(), 10);
       } else if (sectionName === "team-management") {
         setTimeout(() => setupTeamManagement(), 10);
+      } else if (sectionName === "manage-tournaments") {
+        setTimeout(() => setupManageTournaments(), 10);
       } else if (sectionName === "tournament-details") {
         setTimeout(() => setupTournamentDetails(), 10);
       }
@@ -106,6 +142,31 @@ function loadSection(sectionName) {
     });
 }
 
+// Apply role-based visibility to navigation items
+function applyRoleBasedVisibility() {
+  const user = Auth.getCurrentUser();
+  if (!user || !user.roles) return;
+
+  const userRoles = user.roles.map((r) => r.role_name);
+
+  // Find all elements with data-roles attribute
+  document.querySelectorAll("[data-roles]").forEach((element) => {
+    const requiredRoles = element
+      .getAttribute("data-roles")
+      .split(",")
+      .map((r) => r.trim());
+    const hasRequiredRole = requiredRoles.some((role) =>
+      userRoles.includes(role)
+    );
+
+    if (hasRequiredRole) {
+      element.classList.remove("hidden");
+    } else {
+      element.classList.add("hidden");
+    }
+  });
+}
+
 // Update active navigation button
 function updateActiveNav(sectionName) {
   // Remove active class from all nav buttons
@@ -114,6 +175,7 @@ function updateActiveNav(sectionName) {
     "nav-tournaments",
     "nav-my-tournaments",
     "nav-team-management",
+    "nav-manage-tournaments",
     "nav-profile",
   ];
   navButtons.forEach((id) => {
@@ -1459,4 +1521,434 @@ function getTimeAgo(date) {
   }
 
   return "Just now";
+}
+
+// ===== Manage Tournaments =====
+function setupManageTournaments() {
+  let currentTournaments = [];
+
+  // Close modal handler
+  const closeModalBtn = document.getElementById("closeParticipantsModal");
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener("click", () => {
+      document.getElementById("participantsModal")?.classList.add("hidden");
+    });
+  }
+
+  // Load tournaments
+  loadManageTournaments();
+
+  async function loadManageTournaments() {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php?action=organized-tournaments",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        currentTournaments = data.tournaments;
+        renderManageTournaments(data.tournaments);
+      } else {
+        throw new Error(data.message || "Failed to load tournaments");
+      }
+    } catch (error) {
+      console.error("Error loading tournaments:", error);
+      showNotification(error.message, "error");
+    }
+  }
+
+  function renderManageTournaments(tournaments) {
+    document.getElementById("loadingState")?.classList.add("hidden");
+
+    if (tournaments.length === 0) {
+      document.getElementById("emptyState")?.classList.remove("hidden");
+      return;
+    }
+
+    const container = document.getElementById("tournamentsList");
+    if (!container) return;
+
+    container.classList.remove("hidden");
+
+    container.innerHTML = tournaments
+      .map(
+        (tournament) => `
+      <div class="bg-gray-800 rounded-xl border border-gray-700 p-6 hover:border-cyan-500/50 transition-all">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h3 class="text-xl font-bold text-white mb-2">${escapeHtml(
+              tournament.name
+            )}</h3>
+            <p class="text-gray-400 text-sm">${escapeHtml(
+              tournament.description || "No description"
+            )}</p>
+          </div>
+          <span class="px-3 py-1 rounded-lg text-sm font-semibold ${getStatusBadgeClass(
+            tournament.status
+          )}">
+            ${getStatusText(tournament.status)}
+          </span>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div class="bg-gray-700/50 rounded-lg p-3">
+            <div class="text-gray-400 text-xs mb-1">Confirmed</div>
+            <div class="text-green-400 text-lg font-bold">${
+              tournament.confirmed_count || 0
+            }</div>
+          </div>
+          <div class="bg-gray-700/50 rounded-lg p-3">
+            <div class="text-gray-400 text-xs mb-1">Pending</div>
+            <div class="text-yellow-400 text-lg font-bold">${
+              tournament.pending_count || 0
+            }</div>
+          </div>
+          <div class="bg-gray-700/50 rounded-lg p-3">
+            <div class="text-gray-400 text-xs mb-1">Rejected</div>
+            <div class="text-red-400 text-lg font-bold">${
+              tournament.rejected_count || 0
+            }</div>
+          </div>
+          <div class="bg-gray-700/50 rounded-lg p-3">
+            <div class="text-gray-400 text-xs mb-1">Max Participants</div>
+            <div class="text-white text-lg font-bold">${
+              tournament.max_participants || tournament.tournament_size
+            }</div>
+          </div>
+        </div>
+        
+        <div class="flex space-x-3">
+          <button onclick="window.viewParticipants(${
+            tournament.id
+          })" class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            Manage Participants
+          </button>
+          ${
+            tournament.is_team_based == 1
+              ? `
+          <button onclick="window.viewTeams(${tournament.id})" class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            View Teams
+          </button>
+          `
+              : ""
+          }
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  // Global functions for onclick handlers
+  window.viewParticipants = async function (tournamentId) {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        `/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php?action=tournament-participants&tournament_id=${tournamentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showParticipantsModal(data.participants, tournamentId);
+      } else {
+        throw new Error(data.message || "Failed to load participants");
+      }
+    } catch (error) {
+      console.error("Error loading participants:", error);
+      showNotification(error.message, "error");
+    }
+  };
+
+  window.viewTeams = async function (tournamentId) {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        `/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php?action=tournament-teams&tournament_id=${tournamentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showTeamsModal(data.teams);
+      } else {
+        throw new Error(data.message || "Failed to load teams");
+      }
+    } catch (error) {
+      console.error("Error loading teams:", error);
+      showNotification(error.message, "error");
+    }
+  };
+
+  window.approveParticipant = async function (participantId, tournamentId) {
+    if (!confirm("Are you sure you want to approve this participant?")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "approve-participant",
+            participant_id: participantId,
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification("Participant approved successfully!", "success");
+        window.viewParticipants(tournamentId);
+        loadManageTournaments();
+      } else {
+        throw new Error(data.message || "Failed to approve participant");
+      }
+    } catch (error) {
+      console.error("Error approving participant:", error);
+      showNotification(error.message, "error");
+    }
+  };
+
+  window.rejectParticipant = async function (participantId, tournamentId) {
+    if (!confirm("Are you sure you want to reject this participant?")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "reject-participant",
+            participant_id: participantId,
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification("Participant rejected successfully!", "success");
+        window.viewParticipants(tournamentId);
+        loadManageTournaments();
+      } else {
+        throw new Error(data.message || "Failed to reject participant");
+      }
+    } catch (error) {
+      console.error("Error rejecting participant:", error);
+      showNotification(error.message, "error");
+    }
+  };
+
+  function showParticipantsModal(participants, tournamentId) {
+    const modal = document.getElementById("participantsModal");
+    const content = document.getElementById("participantsContent");
+    if (!modal || !content) return;
+
+    if (participants.length === 0) {
+      content.innerHTML = `
+        <div class="text-center py-8 text-gray-400">
+          No participants yet
+        </div>
+      `;
+    } else {
+      content.innerHTML = `
+        <div class="space-y-3">
+          ${participants
+            .map(
+              (participant) => `
+            <div class="bg-gray-700/50 rounded-lg p-4 flex justify-between items-center">
+              <div class="flex-1">
+                <div class="flex items-center space-x-3">
+                  <div>
+                    <div class="text-white font-semibold">${escapeHtml(
+                      participant.username
+                    )}</div>
+                    <div class="text-gray-400 text-sm">${escapeHtml(
+                      participant.email
+                    )}</div>
+                    ${
+                      participant.team_name
+                        ? `<div class="text-purple-400 text-sm">Team: ${escapeHtml(
+                            participant.team_name
+                          )}</div>`
+                        : ""
+                    }
+                  </div>
+                </div>
+                ${
+                  participant.registration_notes
+                    ? `
+                  <div class="mt-2 text-gray-400 text-sm">
+                    <strong>Notes:</strong> ${escapeHtml(
+                      participant.registration_notes
+                    )}
+                  </div>
+                `
+                    : ""
+                }
+              </div>
+              <div class="flex items-center space-x-3">
+                <span class="px-3 py-1 rounded-lg text-sm font-semibold ${getRegistrationBadgeClass(
+                  participant.registration_status
+                )}">
+                  ${participant.registration_status}
+                </span>
+                ${
+                  participant.registration_status === "pending"
+                    ? `
+                  <button onclick="window.approveParticipant(${participant.id}, ${tournamentId})" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors">
+                    Approve
+                  </button>
+                  <button onclick="window.rejectParticipant(${participant.id}, ${tournamentId})" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors">
+                    Reject
+                  </button>
+                `
+                    : ""
+                }
+              </div>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      `;
+    }
+
+    modal.classList.remove("hidden");
+  }
+
+  function showTeamsModal(teams) {
+    const modal = document.getElementById("participantsModal");
+    const content = document.getElementById("participantsContent");
+    if (!modal || !content) return;
+
+    if (teams.length === 0) {
+      content.innerHTML = `
+        <div class="text-center py-8 text-gray-400">
+          No teams registered yet
+        </div>
+      `;
+    } else {
+      content.innerHTML = `
+        <div class="space-y-3">
+          ${teams
+            .map(
+              (team) => `
+            <div class="bg-gray-700/50 rounded-lg p-4">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <div class="text-white font-bold text-lg">${escapeHtml(
+                    team.team_name
+                  )}
+                    ${
+                      team.team_tag
+                        ? `<span class="text-purple-400 text-sm ml-2">[${escapeHtml(
+                            team.team_tag
+                          )}]</span>`
+                        : ""
+                    }
+                  </div>
+                  <div class="text-gray-400 text-sm">Captain: ${escapeHtml(
+                    team.captain_name
+                  )}</div>
+                </div>
+                <span class="px-3 py-1 rounded-lg text-sm font-semibold ${
+                  team.team_status === "active"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-600 text-white"
+                }">
+                  ${team.team_status}
+                </span>
+              </div>
+              <div class="text-cyan-400 text-sm">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                ${team.member_count} members
+              </div>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      `;
+    }
+
+    modal.classList.remove("hidden");
+  }
+
+  function getStatusBadgeClass(status) {
+    const classes = {
+      draft: "bg-gray-600 text-white",
+      open: "bg-green-600 text-white",
+      registration_closed: "bg-yellow-600 text-white",
+      ongoing: "bg-blue-600 text-white",
+      completed: "bg-purple-600 text-white",
+      cancelled: "bg-red-600 text-white",
+    };
+    return classes[status] || "bg-gray-600 text-white";
+  }
+
+  function getStatusText(status) {
+    const texts = {
+      draft: "Draft",
+      open: "Open",
+      registration_closed: "Closed",
+      ongoing: "Ongoing",
+      completed: "Completed",
+      cancelled: "Cancelled",
+    };
+    return texts[status] || status;
+  }
+
+  function getRegistrationBadgeClass(status) {
+    const classes = {
+      pending: "bg-yellow-600 text-white",
+      confirmed: "bg-green-600 text-white",
+      rejected: "bg-red-600 text-white",
+      withdrawn: "bg-gray-600 text-white",
+      waitlist: "bg-blue-600 text-white",
+    };
+    return classes[status] || "bg-gray-600 text-white";
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
 }
