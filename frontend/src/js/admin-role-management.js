@@ -385,7 +385,11 @@ window.openManageRolesModal = function(userId) {
     
     // Add modal to container
     const modalContainer = document.getElementById('modal-container');
-    modalContainer.innerHTML = modalHtml;
+    if (modalContainer) {
+        modalContainer.innerHTML = modalHtml;
+    } else {
+        console.error('Modal container not found');
+    }
 };
 
 /**

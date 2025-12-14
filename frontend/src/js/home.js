@@ -141,7 +141,7 @@ function setupProfile() {
         const reason = reasonEl?.value.trim();
         
         if (!reason) {
-          alert("Please provide a reason for your request");
+          showNotification("Please provide a reason for your request", "error");
           return;
         }
         
@@ -157,10 +157,10 @@ function setupProfile() {
           const result = await Auth.requestOrganizerRole(reason);
           
           if (result.success) {
-            alert("✓ Your request has been submitted successfully! An admin will review it soon.");
+            showNotification("Your request has been submitted successfully! An admin will review it soon.", "success");
             organizerSection.style.display = "none";
           } else {
-            alert("Failed to submit request: " + result.message);
+            showNotification("Failed to submit request: " + result.message, "error");
             requestBtn.disabled = false;
             requestBtn.innerHTML = `
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,7 +170,7 @@ function setupProfile() {
             `;
           }
         } catch (error) {
-          alert("Error submitting request: " + error.message);
+          showNotification("Error submitting request: " + error.message, "error");
           requestBtn.disabled = false;
           requestBtn.innerHTML = `
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,6 +182,49 @@ function setupProfile() {
       });
     }
   }
+}
+
+// Show notification
+function showNotification(message, type = "info") {
+  const typeColors = {
+    success: "bg-green-500/10 border-green-500/50 text-green-400",
+    error: "bg-red-500/10 border-red-500/50 text-red-400",
+    info: "bg-cyan-500/10 border-cyan-500/50 text-cyan-400",
+  };
+
+  const notification = document.createElement("div");
+  notification.className = `fixed top-4 right-4 z-50 ${typeColors[type]} border-2 px-6 py-4 rounded-xl shadow-lg backdrop-blur-sm max-w-md flex items-center justify-between`;
+  notification.innerHTML = `
+    <span class="flex items-center">
+      <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span>${message}</span>
+    </span>
+    <button type="button" class="ml-4 text-current hover:opacity-75 transition-opacity">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  `;
+
+  // Add to body
+  document.body.appendChild(notification);
+
+  // Setup close button
+  const closeBtn = notification.querySelector("button");
+  closeBtn.addEventListener("click", () => {
+    notification.style.opacity = "0";
+    notification.style.transition = "opacity 300ms";
+    setTimeout(() => notification.remove(), 300);
+  });
+
+  // Auto-dismiss after 5 seconds
+  setTimeout(() => {
+    notification.style.opacity = "0";
+    notification.style.transition = "opacity 300ms";
+    setTimeout(() => notification.remove(), 300);
+  }, 5000);
 }
 
 // Handle logout
