@@ -61,6 +61,75 @@
         </div>
     </div>
 
+    <!-- Request Organizer Role Section (for non-organizers) -->
+    <div id="organizer-request-section" class="relative group" style="display: none;">
+        <div class="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-2xl opacity-50 blur"></div>
+        <div class="relative bg-gray-800 rounded-2xl border border-yellow-500/30 overflow-hidden">
+            <div class="bg-gradient-to-r from-yellow-600 to-orange-600 px-6 py-4 border-b border-gray-700">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                    </svg>
+                    Become a Tournament Organizer
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="flex items-start space-x-4 mb-6">
+                    <div class="flex-shrink-0 p-3 bg-yellow-500/20 rounded-xl">
+                        <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-2">Want to create and manage tournaments?</h3>
+                        <p class="text-gray-400 mb-4">Request the Organizer role to gain access to tournament creation and management features. An admin will review your request.</p>
+                        <ul class="space-y-2 text-gray-300 text-sm mb-4">
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Create and manage tournaments
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Organize matches and brackets
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Manage participants and schedules
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-900 rounded-xl p-4 border border-gray-700">
+                    <label for="organizer-reason" class="block text-sm font-semibold text-cyan-300 mb-2">
+                        Tell us why you want to be an organizer:
+                    </label>
+                    <textarea 
+                        id="organizer-reason" 
+                        rows="3" 
+                        class="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all resize-none"
+                        placeholder="I want to organize tournaments because..."
+                    ></textarea>
+                    <button 
+                        id="request-organizer-btn" 
+                        class="mt-4 w-full px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold rounded-lg shadow-lg shadow-yellow-500/30 transition-all flex items-center justify-center"
+                    >
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                        Submit Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Profile Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Column - Stats -->

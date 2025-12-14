@@ -47,10 +47,10 @@ Your Tournament Management System now has a complete role-based access control (
   - Approve/reject requests
   - Manage all user roles
   - Search and filter users
-- ✅ Demo page: [`role-demo.php`](frontend/app/views/pages/home/role-demo.php)
-  - Shows role-based UI features
-  - Request organizer role
-  - Test role checking
+  - Modern Tailwind CSS design
+- ✅ Profile page with role request feature: [`profile.php`](frontend/app/views/pages/home/profile.php)
+  - Request organizer role directly from profile
+  - Clean integration with existing profile UI
 
 #### 📚 Documentation
 - ✅ Setup guide: [`SETUP_GUIDE.md`](SETUP_GUIDE.md)
@@ -126,14 +126,15 @@ backend/
 frontend/
 ├── app/views/pages/
 │   ├── admin/
-│   │   └── role-management.php    ✨ NEW - Admin dashboard
+│   │   └── role-management.php    ✨ NEW - Admin dashboard (Tailwind)
 │   └── home/
-│       └── role-demo.php          ✨ NEW - Demo page
+│       └── profile.php            🔧 UPDATED - Role request feature added
 └── src/js/
     ├── core/
     │   └── auth.js                🔧 UPDATED - JWT & roles
     ├── roleUtils.js               ✨ NEW - Role-based UI
-    └── admin-role-management.js   ✨ NEW - Admin page logic
+    ├── admin-role-management.js   ✨ NEW - Admin page logic (Tailwind)
+    └── home.js                    🔧 UPDATED - Profile role request
 
 Documentation/
 ├── SETUP_GUIDE.md                 ✨ NEW - Complete setup guide
@@ -258,8 +259,8 @@ INSERT INTO user_roles (user_id, role_id) VALUES (3, 3);
 1. Run database migration
 2. Create first admin user
 3. Test login/registration
-4. Try role-based features on demo page
-5. Access admin panel
+4. Request organizer role from profile page
+5. Access admin panel to approve requests
 
 ### Future Enhancements
 - [ ] Email notifications for role requests
@@ -275,7 +276,7 @@ INSERT INTO user_roles (user_id, role_id) VALUES (3, 3);
 
 - **Setup Guide**: [`SETUP_GUIDE.md`](SETUP_GUIDE.md) - Detailed installation and configuration
 - **Quick Reference**: [`ROLE_REFERENCE.md`](ROLE_REFERENCE.md) - Code snippets and common patterns
-- **Demo Page**: `frontend/app/views/pages/home/role-demo.php` - Interactive examples
+- **Profile Page**: Access from your dashboard to request organizer role
 
 ## 🎉 Summary
 
