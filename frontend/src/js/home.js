@@ -67,6 +67,8 @@ function loadSection(sectionName) {
         setupDashboard();
       } else if (sectionName === "profile") {
         setupProfile();
+      } else if (sectionName === "tournaments") {
+        setupTournaments();
       }
     })
     .catch((error) => {
@@ -133,19 +135,19 @@ function setupProfile() {
   const organizerSection = document.getElementById("organizer-request-section");
   if (organizerSection && !Auth.isOrganizer() && !Auth.isAdmin()) {
     organizerSection.style.display = "";
-    
+
     // Setup request organizer button
     const requestBtn = document.getElementById("request-organizer-btn");
     if (requestBtn) {
       requestBtn.addEventListener("click", async () => {
         const reasonEl = document.getElementById("organizer-reason");
         const reason = reasonEl?.value.trim();
-        
+
         if (!reason) {
           showNotification("Please provide a reason for your request", "error");
           return;
         }
-        
+
         try {
           requestBtn.disabled = true;
           requestBtn.innerHTML = `
@@ -154,14 +156,20 @@ function setupProfile() {
             </svg>
             Submitting...
           `;
-          
+
           const result = await Auth.requestOrganizerRole(reason);
-          
+
           if (result.success) {
-            showNotification("Your request has been submitted successfully! An admin will review it soon.", "success");
+            showNotification(
+              "Your request has been submitted successfully! An admin will review it soon.",
+              "success"
+            );
             organizerSection.style.display = "none";
           } else {
-            showNotification("Failed to submit request: " + result.message, "error");
+            showNotification(
+              "Failed to submit request: " + result.message,
+              "error"
+            );
             requestBtn.disabled = false;
             requestBtn.innerHTML = `
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +179,10 @@ function setupProfile() {
             `;
           }
         } catch (error) {
-          showNotification("Error submitting request: " + error.message, "error");
+          showNotification(
+            "Error submitting request: " + error.message,
+            "error"
+          );
           requestBtn.disabled = false;
           requestBtn.innerHTML = `
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,4 +243,136 @@ function showNotification(message, type = "info") {
 async function handleLogout() {
   await Auth.logout();
   window.location.href = getViewPath("layout.php");
+}
+
+// Setup tournaments section
+function setupTournaments() {
+  console.log("Setting up tournaments section...");
+
+  // Load tournament.js dynamically if not already loaded
+  if (typeof window.TournamentAPI === "undefined") {
+    const script = document.createElement("script");
+    script.src =
+      "/GitHub Repos/Tournament-Management-System/frontend/src/js/tournament.js";
+    script.onload = function () {
+      console.log("Tournament.js loaded");
+      initTournamentPage();
+    };
+    script.onerror = function () {
+      console.error("Failed to load tournament.js");
+    };
+    document.head.appendChild(script);
+  } else {
+    initTournamentPage();
+  }
+
+  function initTournamentPage() {
+    if (
+      typeof window.TournamentAPI === "undefined" ||
+      typeof window.TournamentUI === "undefined"
+    ) {
+      console.error("TournamentAPI or TournamentUI not available");
+      return;
+    }
+
+    console.log("Initializing tournament page...");
+
+    // Set API base URL
+    window.TournamentAPI.baseURL =
+      "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php";
+    console.log("API URL set to:", window.TournamentAPI.baseURL);
+
+    // Load tournaments
+    loadTournaments();
+    setupFilterButtons();
+    setupCreateButton();
+
+    function setupFilterButtons() {
+      document.querySelectorAll(".filter-tab").forEach((button) => {
+        button.addEventListener("click", function () {
+          document.querySelectorAll(".filter-tab").forEach((btn) => {
+            btn.classList.remove(
+              "active",
+              "bg-gradient-to-r",
+              "from-cyan-500",
+              "to-purple-600",
+              "text-white",
+              "shadow-lg",
+              "shadow-cyan-500/30"
+            );
+            btn.classList.add("bg-gray-800", "text-gray-400");
+          });
+
+          this.classList.remove("bg-gray-800", "text-gray-400");
+          this.classList.add(
+            "active",
+            "bg-gradient-to-r",
+            "from-cyan-500",
+            "to-purple-600",
+            "text-white",
+            "shadow-lg",
+            "shadow-cyan-500/30"
+          );
+
+          const status = this.dataset.status;
+          loadTournaments(status);
+        });
+      });
+    }
+
+    function setupCreateButton() {
+      const createBtn = document.getElementById("createTournamentBtn");
+      if (createBtn) {
+        createBtn.addEventListener("click", function () {
+          window.location.href =
+            "/GitHub Repos/Tournament-Management-System/frontend/app/views/pages/home/create-tournament.php";
+        });
+      }
+    }
+
+    async function loadTournaments(status = null) {
+      const loadingState = document.getElementById("loadingState");
+      const tournamentsGrid = document.getElementById("tournamentsGrid");
+      const emptyState = document.getElementById("emptyState");
+
+      if (!loadingState || !tournamentsGrid || !emptyState) {
+        console.error("Tournament page elements not found");
+        return;
+      }
+
+      loadingState.classList.remove("hidden");
+      tournamentsGrid.classList.add("hidden");
+      emptyState.classList.add("hidden");
+
+      try {
+        console.log("Fetching tournaments with status:", status);
+        const result = await window.TournamentAPI.getTournaments(status);
+        console.log("API response:", result);
+
+        if (
+          result.success &&
+          result.tournaments &&
+          result.tournaments.length > 0
+        ) {
+          console.log("Rendering", result.tournaments.length, "tournaments");
+          tournamentsGrid.innerHTML = result.tournaments
+            .map((tournament) =>
+              window.TournamentUI.renderTournamentCard(tournament)
+            )
+            .join("");
+
+          loadingState.classList.add("hidden");
+          tournamentsGrid.classList.remove("hidden");
+        } else {
+          console.log("No tournaments found");
+          loadingState.classList.add("hidden");
+          emptyState.classList.remove("hidden");
+        }
+      } catch (error) {
+        console.error("Error loading tournaments:", error);
+        loadingState.classList.add("hidden");
+        emptyState.classList.remove("hidden");
+      }
+    }
+  }
 }

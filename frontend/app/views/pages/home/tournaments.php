@@ -59,116 +59,144 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
 </div>
 
 <style>
-.bg-grid-pattern {
-    background-image: 
-        linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-}
-
-.filter-tab.active {
-    background: linear-gradient(to right, #06b6d4, #9333ea);
-    color: white;
-    box-shadow: 0 10px 15px -3px rgba(6, 182, 212, 0.3);
-}
-
-@keyframes fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
+    .bg-grid-pattern {
+        background-image:
+            linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
-.animate-fade-in {
-    animation: fade-in 0.3s ease-out;
-}
+    .filter-tab.active {
+        background: linear-gradient(to right, #06b6d4, #9333ea);
+        color: white;
+        box-shadow: 0 10px 15px -3px rgba(6, 182, 212, 0.3);
+    }
+
+    @keyframes fade-in {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in {
+        animation: fade-in 0.3s ease-out;
+    }
 </style>
 
+<script>
+    console.log('=== TOURNAMENT PAGE LOADED ===');
+    console.log('Script execution test');
+</script>
 <script src="<?php echo getAssetPath('js/tournament.js'); ?>"></script>
 <script>
-    let currentFilter = '';
-    
-    // Set the base API path dynamically
-    if (typeof TournamentAPI !== 'undefined') {
-        TournamentAPI.baseURL = '<?php echo getBackendPath('api/tournament_api.php'); ?>';
-    }
+    console.log('=== TOURNAMENT INITIALIZATION STARTING ===');
+    (function() {
+        console.log('Inline script started');
+        console.log('TournamentAPI defined?', typeof TournamentAPI !== 'undefined');
+        console.log('TournamentUI defined?', typeof TournamentUI !== 'undefined');
 
-    // Load tournaments on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        loadTournaments();
-        setupFilterButtons();
-        setupCreateButton();
-    });
-
-    // Setup filter buttons
-    function setupFilterButtons() {
-        document.querySelectorAll('.filter-tab').forEach(button => {
-            button.addEventListener('click', function() {
-                // Update active state
-                document.querySelectorAll('.filter-tab').forEach(btn => {
-                    btn.classList.remove('active', 'bg-gradient-to-r', 'from-cyan-500', 'to-purple-600', 'text-white', 'shadow-lg', 'shadow-cyan-500/30');
-                    btn.classList.add('bg-gray-800', 'text-gray-400');
-                });
-                
-                this.classList.remove('bg-gray-800', 'text-gray-400');
-                this.classList.add('active', 'bg-gradient-to-r', 'from-cyan-500', 'to-purple-600', 'text-white', 'shadow-lg', 'shadow-cyan-500/30');
-                
-                // Load tournaments with filter
-                currentFilter = this.dataset.status;
-                loadTournaments(currentFilter);
-            });
-        });
-    }
-
-    // Setup create tournament button
-    function setupCreateButton() {
-        const createBtn = document.getElementById('createTournamentBtn');
-        if (createBtn) {
-            createBtn.addEventListener('click', function() {
-                window.location.href = '/frontend/app/views/pages/home/create-tournament.php';
-            });
-        }
-    }
-
-    // Load and display tournaments
-    async function loadTournaments(status = null) {
-        const loadingState = document.getElementById('loadingState');
-        const tournamentsGrid = document.getElementById('tournamentsGrid');
-        const emptyState = document.getElementById('emptyState');
-
-        // Show loading
-        loadingState.classList.remove('hidden');
-        tournamentsGrid.classList.add('hidden');
-        emptyState.classList.add('hidden');
-
-        try {
-            const result = await TournamentAPI.getTournaments(status);
-            
-            if (result.success && result.tournaments && result.tournaments.length > 0) {
-                // Render tournaments
-                tournamentsGrid.innerHTML = result.tournaments.map(tournament => 
-                    TournamentUI.renderTournamentCard(tournament)
-                ).join('');
-                
-                loadingState.classList.add('hidden');
-                tournamentsGrid.classList.remove('hidden');
-            } else {
-                // Show empty state
-                loadingState.classList.add('hidden');
-                emptyState.classList.remove('hidden');
+        // Wait for tournament.js to load if it hasn't yet
+        function initTournamentPage() {
+            if (typeof TournamentAPI === 'undefined' || typeof TournamentUI === 'undefined') {
+                console.log('Waiting for tournament.js to load...');
+                setTimeout(initTournamentPage, 100);
+                return;
             }
-        } catch (error) {
-            console.error('Error loading tournaments:', error);
-            loadingState.classList.add('hidden');
-            emptyState.classList.remove('hidden');
-        }
-    }
 
-    // Make functions available globally
-    window.TournamentUI = TournamentUI;
-    window.loadTournaments = loadTournaments;
+            console.log('Tournament scripts loaded successfully');
+
+            let currentFilter = '';
+
+            // Set the base API path dynamically
+            TournamentAPI.baseURL = '<?php echo getBackendPath('api/tournament_api.php'); ?>';
+            console.log('Tournament API URL:', TournamentAPI.baseURL);
+
+            // Load tournaments immediately (DOM is already loaded since this is AJAX-loaded content)
+            console.log('Loading tournaments...');
+            loadTournaments();
+            setupFilterButtons();
+            setupCreateButton();
+
+            // Setup filter buttons
+            function setupFilterButtons() {
+                document.querySelectorAll('.filter-tab').forEach(button => {
+                    button.addEventListener('click', function() {
+                        // Update active state
+                        document.querySelectorAll('.filter-tab').forEach(btn => {
+                            btn.classList.remove('active', 'bg-gradient-to-r', 'from-cyan-500', 'to-purple-600', 'text-white', 'shadow-lg', 'shadow-cyan-500/30');
+                            btn.classList.add('bg-gray-800', 'text-gray-400');
+                        });
+
+                        this.classList.remove('bg-gray-800', 'text-gray-400');
+                        this.classList.add('active', 'bg-gradient-to-r', 'from-cyan-500', 'to-purple-600', 'text-white', 'shadow-lg', 'shadow-cyan-500/30');
+
+                        // Load tournaments with filter
+                        currentFilter = this.dataset.status;
+                        loadTournaments(currentFilter);
+                    });
+                });
+            }
+
+            // Setup create tournament button
+            function setupCreateButton() {
+                const createBtn = document.getElementById('createTournamentBtn');
+                if (createBtn) {
+                    createBtn.addEventListener('click', function() {
+                        window.location.href = '/frontend/app/views/pages/home/create-tournament.php';
+                    });
+                }
+            }
+
+            // Load and display tournaments
+            async function loadTournaments(status = null) {
+                const loadingState = document.getElementById('loadingState');
+                const tournamentsGrid = document.getElementById('tournamentsGrid');
+                const emptyState = document.getElementById('emptyState');
+
+                // Show loading
+                loadingState.classList.remove('hidden');
+                tournamentsGrid.classList.add('hidden');
+                emptyState.classList.add('hidden');
+
+                try {
+                    console.log('Fetching tournaments with status:', status);
+                    const result = await TournamentAPI.getTournaments(status);
+                    console.log('Tournament API response:', result);
+
+                    if (result.success && result.tournaments && result.tournaments.length > 0) {
+                        // Render tournaments
+                        console.log('Rendering', result.tournaments.length, 'tournaments');
+                        tournamentsGrid.innerHTML = result.tournaments.map(tournament =>
+                            TournamentUI.renderTournamentCard(tournament)
+                        ).join('');
+
+                        loadingState.classList.add('hidden');
+                        tournamentsGrid.classList.remove('hidden');
+                    } else {
+                        // Show empty state
+                        console.log('No tournaments found, showing empty state');
+                        loadingState.classList.add('hidden');
+                        emptyState.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error loading tournaments:', error);
+                    loadingState.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                }
+            }
+
+            // Make functions available globally
+            window.TournamentUI = TournamentUI;
+            window.loadTournaments = loadTournaments;
+        }
+
+        // Start initialization
+        initTournamentPage();
+    })();
 </script>
