@@ -355,7 +355,7 @@ $db = $database->getConnection();
             <li>Create your first admin user (see warnings above)</li>
             <li>Test the system by logging in</li>
             <li>Access the admin panel: <code>frontend/app/views/pages/admin/role-management.php</code></li>
-            <li>Try the demo page: <code>frontend/app/views/pages/home/role-demo.php</code></li>
+            <li>Request organizer role from your profile page</li>
         </ol>
 
         <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666;">

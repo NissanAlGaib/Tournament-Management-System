@@ -1,5 +1,6 @@
 // Import authentication module
 import * as Auth from "./core/auth.js";
+import { getViewPath } from "./pathHelper.js";
 
 // DOM Elements
 let homeContent;
@@ -127,10 +128,108 @@ function setupProfile() {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", handleLogout);
   }
+
+  // Show organizer request section if user is not an organizer or admin
+  const organizerSection = document.getElementById("organizer-request-section");
+  if (organizerSection && !Auth.isOrganizer() && !Auth.isAdmin()) {
+    organizerSection.style.display = "";
+    
+    // Setup request organizer button
+    const requestBtn = document.getElementById("request-organizer-btn");
+    if (requestBtn) {
+      requestBtn.addEventListener("click", async () => {
+        const reasonEl = document.getElementById("organizer-reason");
+        const reason = reasonEl?.value.trim();
+        
+        if (!reason) {
+          showNotification("Please provide a reason for your request", "error");
+          return;
+        }
+        
+        try {
+          requestBtn.disabled = true;
+          requestBtn.innerHTML = `
+            <svg class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Submitting...
+          `;
+          
+          const result = await Auth.requestOrganizerRole(reason);
+          
+          if (result.success) {
+            showNotification("Your request has been submitted successfully! An admin will review it soon.", "success");
+            organizerSection.style.display = "none";
+          } else {
+            showNotification("Failed to submit request: " + result.message, "error");
+            requestBtn.disabled = false;
+            requestBtn.innerHTML = `
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
+              Submit Request
+            `;
+          }
+        } catch (error) {
+          showNotification("Error submitting request: " + error.message, "error");
+          requestBtn.disabled = false;
+          requestBtn.innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+            Submit Request
+          `;
+        }
+      });
+    }
+  }
+}
+
+// Show notification
+function showNotification(message, type = "info") {
+  const typeColors = {
+    success: "bg-green-500/10 border-green-500/50 text-green-400",
+    error: "bg-red-500/10 border-red-500/50 text-red-400",
+    info: "bg-cyan-500/10 border-cyan-500/50 text-cyan-400",
+  };
+
+  const notification = document.createElement("div");
+  notification.className = `fixed top-4 right-4 z-50 ${typeColors[type]} border-2 px-6 py-4 rounded-xl shadow-lg backdrop-blur-sm max-w-md flex items-center justify-between`;
+  notification.innerHTML = `
+    <span class="flex items-center">
+      <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span>${message}</span>
+    </span>
+    <button type="button" class="ml-4 text-current hover:opacity-75 transition-opacity">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  `;
+
+  // Add to body
+  document.body.appendChild(notification);
+
+  // Setup close button
+  const closeBtn = notification.querySelector("button");
+  closeBtn.addEventListener("click", () => {
+    notification.style.opacity = "0";
+    notification.style.transition = "opacity 300ms";
+    setTimeout(() => notification.remove(), 300);
+  });
+
+  // Auto-dismiss after 5 seconds
+  setTimeout(() => {
+    notification.style.opacity = "0";
+    notification.style.transition = "opacity 300ms";
+    setTimeout(() => notification.remove(), 300);
+  }, 5000);
 }
 
 // Handle logout
-function handleLogout() {
-  Auth.logout();
-  window.location.href = "layout.php";
+async function handleLogout() {
+  await Auth.logout();
+  window.location.href = getViewPath("layout.php");
 }

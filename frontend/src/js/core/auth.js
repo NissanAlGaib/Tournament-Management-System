@@ -1,8 +1,32 @@
 // Authentication API Module
 // Handles all authentication-related API calls with JWT
 
-const AUTH_API_URL = '../../../backend/api/auth_api.php';
-const ADMIN_API_URL = '../../../backend/api/admin_api.php';
+// Get the base path for API calls
+// Extract the project base path and construct API URLs
+function getApiBasePath() {
+    const pathname = window.location.pathname;
+    
+    // Find the project root by looking for 'frontend' in the path
+    // Project structure: /[optional-base]/frontend/app/views/...
+    // Backend is at: /[optional-base]/backend/api/
+    
+    const frontendIndex = pathname.indexOf('/frontend/');
+    if (frontendIndex !== -1) {
+        // Extract base path before /frontend/
+        const basePath = pathname.substring(0, frontendIndex);
+        return basePath + '/backend/api/';
+    }
+    
+    // Fallback to relative path if frontend not found
+    // This assumes we're in frontend directory somewhere
+    const currentDir = pathname.substring(0, pathname.lastIndexOf('/'));
+    const depth = currentDir.split('/').filter(s => s).length;
+    return '../'.repeat(depth) + 'backend/api/';
+}
+
+const API_BASE_PATH = getApiBasePath();
+const AUTH_API_URL = API_BASE_PATH + 'auth_api.php';
+const ADMIN_API_URL = API_BASE_PATH + 'admin_api.php';
 
 /**
  * Make authenticated API request with JWT token

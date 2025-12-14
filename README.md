@@ -48,9 +48,8 @@ A modern tournament management system with role-based access control, JWT authen
 │   │   │   └── register.php       # Registration page
 │   │   ├── home/
 │   │   │   ├── dashboard.php      # User dashboard
-│   │   │   ├── profile.php        # User profile
-│   │   │   ├── tournaments.php    # Tournament listing
-│   │   │   └── role-demo.php      # Role features demo
+│   │   │   ├── profile.php        # User profile with role request
+│   │   │   └── tournaments.php    # Tournament listing
 │   │   └── admin/
 │   │       └── role-management.php # Admin role management
 │   └── src/
@@ -130,7 +129,7 @@ A modern tournament management system with role-based access control, JWT authen
 2. **Login** and explore the dashboard
 3. **Make yourself admin** (see step 6 above)
 4. **Access admin panel**: `/frontend/app/views/pages/admin/role-management.php`
-5. **Try role features**: `/frontend/app/views/pages/home/role-demo.php`
+5. **Request organizer role** from your profile page if you're a player
 
 ## Documentation
 

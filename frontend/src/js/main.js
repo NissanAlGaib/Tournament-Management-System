@@ -1,5 +1,6 @@
 // Import authentication module
 import * as Auth from './core/auth.js';
+import { getPagePath } from './pathHelper.js';
 
 // DOM Elements
 let mainContent;
@@ -11,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if user is already logged in
     if (Auth.isAuthenticated()) {
         // Redirect to homepage if already logged in
-        window.location.href = 'pages/home/index.php';
+        window.location.href = getPagePath('home/index.php');
         return;
     }
     
@@ -80,9 +81,14 @@ function setupLoginForm() {
                 successDiv.textContent = data.message;
                 successDiv.classList.remove('hidden');
                 
-                // Redirect to homepage after successful login
+                // Redirect based on user role after successful login
                 setTimeout(() => {
-                    window.location.href = 'pages/home/index.php';
+                    // Check if user is admin and redirect to admin panel
+                    if (Auth.isAdmin()) {
+                        window.location.href = getPagePath('admin/dashboard.php');
+                    } else {
+                        window.location.href = getPagePath('home/index.php');
+                    }
                 }, 1000);
             } else {
                 errorDiv.textContent = data.message;
