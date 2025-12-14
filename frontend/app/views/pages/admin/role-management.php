@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Role Management - Tournament Management System</title>
-    <link rel="stylesheet" href="../../../src/output.css">
+    <link rel="stylesheet" href="../../../../src/output.css">
 </head>
 <body class="bg-gray-900 min-h-screen">
     <!-- Admin Navigation Bar -->
@@ -149,6 +149,6 @@
     <!-- Modal Container -->
     <div id="modal-container"></div>
 
-    <script type="module" src="../../../src/js/admin-role-management.js"></script>
+    <script type="module" src="../../../../src/js/admin-role-management.js"></script>
 </body>
 </html>

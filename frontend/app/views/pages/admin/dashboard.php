@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Tournament Management System</title>
-    <link rel="stylesheet" href="../../../src/output.css">
+    <link rel="stylesheet" href="../../../../src/output.css">
 </head>
 <body class="bg-gray-900 min-h-screen">
     <!-- Admin Navigation Bar -->
@@ -219,6 +219,6 @@
         </div>
     </main>
 
-    <script type="module" src="../../../src/js/admin-dashboard.js"></script>
+    <script type="module" src="../../../../src/js/admin-dashboard.js"></script>
 </body>
 </html>
