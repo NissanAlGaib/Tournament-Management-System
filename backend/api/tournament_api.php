@@ -179,13 +179,13 @@ try {
                     $query = "INSERT INTO tournaments 
                             (organizer_id, name, description, game_type, format, tournament_size, 
                              max_participants, rules, match_rules, scoring_system, entry_fee, 
-                             is_public, is_featured, registration_start, registration_deadline, 
+                             is_public, is_featured, is_team_based, registration_start, registration_deadline, 
                              allow_late_registration, start_date, end_date, estimated_duration_hours, 
                              status, visibility)
                             VALUES 
                             (:organizer_id, :name, :description, :game_type, :format, :tournament_size,
                              :max_participants, :rules, :match_rules, :scoring_system, :entry_fee,
-                             :is_public, :is_featured, :registration_start, :registration_deadline,
+                             :is_public, :is_featured, :is_team_based, :registration_start, :registration_deadline,
                              :allow_late_registration, :start_date, :end_date, :estimated_duration_hours,
                              :status, :visibility)";
 
@@ -202,6 +202,7 @@ try {
                     $entryFee = $data['entry_fee'] ?? 0.00;
                     $isPublic = $data['is_public'] ?? 1;
                     $isFeatured = $data['is_featured'] ?? 0;
+                    $isTeamBased = $data['is_team_based'] ?? 0;
                     $registrationStart = $data['registration_start'] ?? null;
                     $allowLateReg = $data['allow_late_registration'] ?? 0;
                     $endDate = $data['end_date'] ?? null;
@@ -222,6 +223,7 @@ try {
                     $stmt->bindParam(':entry_fee', $entryFee);
                     $stmt->bindParam(':is_public', $isPublic);
                     $stmt->bindParam(':is_featured', $isFeatured);
+                    $stmt->bindParam(':is_team_based', $isTeamBased);
                     $stmt->bindParam(':registration_start', $registrationStart);
                     $stmt->bindParam(':registration_deadline', $data['registration_deadline']);
                     $stmt->bindParam(':allow_late_registration', $allowLateReg);

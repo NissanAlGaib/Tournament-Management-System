@@ -138,6 +138,21 @@
                 </div>
 
                 <div>
+                    <label for="is_team_based" class="block text-sm font-medium text-gray-300 mb-2">
+                        Tournament Type <span class="text-red-400">*</span>
+                    </label>
+                    <select id="is_team_based" name="is_team_based" required
+                        class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all">
+                        <option value="0" selected>Solo/Individual Tournament</option>
+                        <option value="1">Team-Based Tournament</option>
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1">
+                        <span class="inline-block mr-2">🏃 Solo: Players compete individually</span><br>
+                        <span class="inline-block">👥 Team: Players form teams to compete</span>
+                    </p>
+                </div>
+
+                <div>
                     <label for="rules" class="block text-sm font-medium text-gray-300 mb-2">
                         Tournament Rules (Optional)
                     </label>
@@ -343,6 +358,7 @@
                     entry_fee: parseFloat(document.getElementById('entry_fee').value) || 0,
                     visibility: document.getElementById('visibility').value,
                     is_public: document.getElementById('visibility').value === 'public' ? 1 : 0,
+                    is_team_based: parseInt(document.getElementById('is_team_based').value) || 0,
                     registration_deadline: document.getElementById('registration_deadline').value,
                     start_date: document.getElementById('start_date').value,
                     rules: document.getElementById('rules').value || '',

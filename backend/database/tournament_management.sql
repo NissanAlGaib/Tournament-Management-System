@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS `tournaments` (
   `entry_fee` decimal(10,2) DEFAULT 0.00,
   `is_public` tinyint(1) DEFAULT 1,
   `is_featured` tinyint(1) DEFAULT 0,
+  `is_team_based` tinyint(1) DEFAULT 0,
   
   -- Registration management
   `registration_start` datetime DEFAULT NULL,
