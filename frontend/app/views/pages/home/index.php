@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tournament Management System - Home</title>
-    <link rel="stylesheet" href="../../src/output.css">
+    <link rel="stylesheet" href="../../../../src/output.css">
 </head>
 <body class="bg-gray-900 min-h-screen">
     <!-- Top Navigation -->
@@ -94,6 +94,6 @@
         </main>
     </div>
 
-    <script type="module" src="../../src/js/home.js"></script>
+    <script type="module" src="../../../../src/js/home.js"></script>
 </body>
 </html>
