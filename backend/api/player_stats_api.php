@@ -218,18 +218,18 @@ try {
                 ];
             }
 
-            // Check if player is in top rankings
+            // Check if player is in top rankings (only if they have participated in matches)
             $rankQuery = "SELECT COUNT(*) + 1 as rank
                          FROM (
                              SELECT tp.user_id, COUNT(CASE WHEN m.winner_id = tp.id THEN 1 END) as wins
                              FROM tournament_participants tp
-                             LEFT JOIN matches m ON (m.participant1_id = tp.id OR m.participant2_id = tp.id)
+                             INNER JOIN matches m ON (m.participant1_id = tp.id OR m.participant2_id = tp.id)
                              WHERE m.match_status = 'completed'
                              GROUP BY tp.user_id
                              HAVING wins > (
                                  SELECT COUNT(CASE WHEN m.winner_id = tp.id THEN 1 END)
                                  FROM tournament_participants tp
-                                 LEFT JOIN matches m ON (m.participant1_id = tp.id OR m.participant2_id = tp.id)
+                                 INNER JOIN matches m ON (m.participant1_id = tp.id OR m.participant2_id = tp.id)
                                  WHERE tp.user_id = :user_id AND m.match_status = 'completed'
                              )
                          ) rankings";
@@ -239,7 +239,18 @@ try {
             $stmt->execute();
             $ranking = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($ranking && $ranking['rank'] <= 10) {
+            // Only show ranking if user has actually participated in matches
+            $hasMatchesQuery = "SELECT COUNT(*) as match_count 
+                               FROM tournament_participants tp
+                               INNER JOIN matches m ON (m.participant1_id = tp.id OR m.participant2_id = tp.id)
+                               WHERE tp.user_id = :user_id AND m.match_status = 'completed'";
+
+            $stmt = $db->prepare($hasMatchesQuery);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->execute();
+            $hasMatches = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($ranking && $ranking['rank'] <= 10 && $hasMatches['match_count'] > 0) {
                 $achievements[] = [
                     'type' => 'ranking',
                     'title' => 'Top Player',

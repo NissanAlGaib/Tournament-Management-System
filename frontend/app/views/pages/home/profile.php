@@ -26,26 +26,6 @@
                     <div class="flex-1">
                         <h1 class="text-3xl font-black text-white mb-1" id="profile-username"></h1>
                         <p class="text-gray-400" id="profile-email"></p>
-                        <div class="flex items-center space-x-4 mt-3">
-                            <div class="flex items-center text-sm text-gray-300">
-                                <svg class="w-4 h-4 mr-1 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
-                                </svg>
-                                8 Wins
-                            </div>
-                            <div class="flex items-center text-sm text-gray-300">
-                                <svg class="w-4 h-4 mr-1 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                12 Tournaments
-                            </div>
-                            <div class="flex items-center text-sm text-gray-300">
-                                <svg class="w-4 h-4 mr-1 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-                                </svg>
-                                Level 15
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Action Buttons -->
@@ -172,24 +152,7 @@
                 <div class="relative bg-gray-800 rounded-2xl p-6 border border-purple-500/30">
                     <h2 class="text-xl font-bold text-white mb-4">Recent Achievements</h2>
                     <div id="achievements-container" class="space-y-3">
-                        <div class="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg border border-yellow-500/30">
-                            <svg class="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
-                            <div>
-                                <p class="text-white font-semibold text-sm">Champion</p>
-                                <p class="text-gray-400 text-xs">Won Summer League</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg border border-cyan-500/30">
-                            <svg class="w-8 h-8 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
-                            <div>
-                                <p class="text-white font-semibold text-sm">Top Player</p>
-                                <p class="text-gray-400 text-xs">Ranked in top 10</p>
-                            </div>
-                        </div>
+                        <!-- Achievements will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -204,81 +167,7 @@
                         <h2 class="text-xl font-bold text-white">Match History</h2>
                     </div>
                     <div id="match-history-container" class="p-6 space-y-3">
-                        <!-- Match Item -->
-                        <div class="flex items-center justify-between p-4 bg-gray-900 rounded-xl border border-green-500/30">
-                            <div class="flex items-center space-x-4">
-                                <div class="p-2 bg-green-500/20 rounded-lg">
-                                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-white font-semibold">Victory vs Team Phoenix</p>
-                                    <p class="text-sm text-gray-400">Summer League 2024 - Finals</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-green-400 font-bold">WIN</p>
-                                <p class="text-xs text-gray-400">2 hours ago</p>
-                            </div>
-                        </div>
-
-                        <!-- Match Item -->
-                        <div class="flex items-center justify-between p-4 bg-gray-900 rounded-xl border border-green-500/30">
-                            <div class="flex items-center space-x-4">
-                                <div class="p-2 bg-green-500/20 rounded-lg">
-                                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-white font-semibold">Victory vs Elite Squad</p>
-                                    <p class="text-sm text-gray-400">Summer League 2024 - Semi Finals</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-green-400 font-bold">WIN</p>
-                                <p class="text-xs text-gray-400">1 day ago</p>
-                            </div>
-                        </div>
-
-                        <!-- Match Item -->
-                        <div class="flex items-center justify-between p-4 bg-gray-900 rounded-xl border border-red-500/30">
-                            <div class="flex items-center space-x-4">
-                                <div class="p-2 bg-red-500/20 rounded-lg">
-                                    <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-white font-semibold">Defeat vs Thunder Warriors</p>
-                                    <p class="text-sm text-gray-400">Summer League 2024 - Quarter Finals</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-red-400 font-bold">LOSS</p>
-                                <p class="text-xs text-gray-400">3 days ago</p>
-                            </div>
-                        </div>
-
-                        <!-- Match Item -->
-                        <div class="flex items-center justify-between p-4 bg-gray-900 rounded-xl border border-green-500/30">
-                            <div class="flex items-center space-x-4">
-                                <div class="p-2 bg-green-500/20 rounded-lg">
-                                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-white font-semibold">Victory vs Storm Breakers</p>
-                                    <p class="text-sm text-gray-400">Summer League 2024 - Round of 16</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-green-400 font-bold">WIN</p>
-                                <p class="text-xs text-gray-400">5 days ago</p>
-                            </div>
-                        </div>
+                        <!-- Match history will be loaded here -->
                     </div>
                 </div>
             </div>
