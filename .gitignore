@@ -9,6 +9,13 @@ build/
 .env
 .env.local
 
+# Email configuration (contains SMTP credentials)
+backend/config/email_config.php
+
+# Composer
+vendor/
+composer.lock
+
 # IDE
 .vscode/
 .idea/

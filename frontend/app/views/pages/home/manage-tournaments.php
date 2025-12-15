@@ -216,36 +216,69 @@
                 content.innerHTML = `
                 <div class="space-y-3">
                     ${participants.map(participant => `
-                        <div class="bg-gray-700/50 rounded-lg p-4 flex justify-between items-center">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-3">
-                                    <div>
-                                        <div class="text-white font-semibold">${escapeHtml(participant.username)}</div>
-                                        <div class="text-gray-400 text-sm">${escapeHtml(participant.email)}</div>
-                                        ${participant.team_name ? `<div class="text-purple-400 text-sm">Team: ${escapeHtml(participant.team_name)}</div>` : ''}
+                        <div class="bg-gray-700/50 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-3">
+                                        <div>
+                                            <div class="text-white font-semibold">${escapeHtml(participant.username)}</div>
+                                            <div class="text-gray-400 text-sm">${escapeHtml(participant.email)}</div>
+                                            ${participant.team_name ? `<div class="text-purple-400 text-sm">Team: ${escapeHtml(participant.team_name)}</div>` : ''}
+                                        </div>
                                     </div>
                                 </div>
-                                ${participant.registration_notes ? `
-                                    <div class="mt-2 text-gray-400 text-sm">
-                                        <strong>Notes:</strong> ${escapeHtml(participant.registration_notes)}
+                                <div class="flex items-center space-x-3">
+                                    <span class="px-3 py-1 rounded-lg text-sm font-semibold ${getRegistrationBadgeClass(participant.registration_status)}">
+                                        ${participant.registration_status}
+                                    </span>
+                                    ${participant.registration_status === 'pending' ? `
+                                        <button onclick="approveParticipant(${participant.id}, ${tournamentId})" 
+                                                class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors">
+                                            Approve
+                                        </button>
+                                        <button onclick="rejectParticipant(${participant.id}, ${tournamentId})" 
+                                                class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors">
+                                            Reject
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Additional Player Information -->
+                            <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-600">
+                                ${participant.phone_number ? `
+                                    <div>
+                                        <span class="text-xs text-gray-400">Phone:</span>
+                                        <div class="text-sm text-white">${escapeHtml(participant.phone_number)}</div>
+                                    </div>
+                                ` : ''}
+                                ${participant.experience_level ? `
+                                    <div>
+                                        <span class="text-xs text-gray-400">Experience:</span>
+                                        <div class="text-sm text-white capitalize">${escapeHtml(participant.experience_level)}</div>
+                                    </div>
+                                ` : ''}
+                                ${participant.player_role ? `
+                                    <div>
+                                        <span class="text-xs text-gray-400">Role:</span>
+                                        <div class="text-sm text-white">${escapeHtml(participant.player_role)}</div>
                                     </div>
                                 ` : ''}
                             </div>
-                            <div class="flex items-center space-x-3">
-                                <span class="px-3 py-1 rounded-lg text-sm font-semibold ${getRegistrationBadgeClass(participant.registration_status)}">
-                                    ${participant.registration_status}
-                                </span>
-                                ${participant.registration_status === 'pending' ? `
-                                    <button onclick="approveParticipant(${participant.id}, ${tournamentId})" 
-                                            class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors">
-                                        Approve
-                                    </button>
-                                    <button onclick="rejectParticipant(${participant.id}, ${tournamentId})" 
-                                            class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors">
-                                        Reject
-                                    </button>
-                                ` : ''}
-                            </div>
+                            
+                            ${participant.additional_info ? `
+                                <div class="mt-3 pt-3 border-t border-gray-600">
+                                    <span class="text-xs text-gray-400">Additional Info:</span>
+                                    <div class="text-sm text-gray-300 mt-1">${escapeHtml(participant.additional_info)}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${participant.registration_notes ? `
+                                <div class="mt-3 pt-3 border-t border-gray-600">
+                                    <span class="text-xs text-gray-400">Notes to Organizer:</span>
+                                    <div class="text-sm text-gray-300 mt-1">${escapeHtml(participant.registration_notes)}</div>
+                                </div>
+                            ` : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -291,7 +324,9 @@
 
         // Reject participant
         window.rejectParticipant = async function(participantId, tournamentId) {
-            if (!confirm('Are you sure you want to reject this participant?')) {
+            const reason = prompt('Please provide a reason for rejection (optional):');
+            if (reason === null) {
+                // User cancelled
                 return;
             }
 
@@ -305,7 +340,8 @@
                     },
                     body: JSON.stringify({
                         action: 'reject-participant',
-                        participant_id: participantId
+                        participant_id: participantId,
+                        reason: reason || null
                     })
                 });
                 const data = await response.json();
