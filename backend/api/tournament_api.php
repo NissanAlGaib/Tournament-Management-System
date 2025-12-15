@@ -164,7 +164,11 @@ try {
                 // Get user notifications
                 $user = $authMiddleware->requireAuth();
 
-                $query = "SELECT tn.*, t.name as tournament_name
+                $query = "SELECT tn.id, tn.tournament_id, tn.notification_type as type, 
+                         tn.title, tn.message, tn.priority, tn.target_audience, 
+                         tn.target_user_id, tn.is_read, tn.created_at,
+                         tn.tournament_id as related_id,
+                         t.name as tournament_name
                          FROM tournament_notifications tn
                          INNER JOIN tournaments t ON tn.tournament_id = t.id
                          WHERE (tn.target_audience = 'all' OR 

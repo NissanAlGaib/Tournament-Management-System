@@ -1,9 +1,4 @@
-<?php
-require_once __DIR__ . '/../../../helpers/path_helper.php';
-$pageTitle = 'Tournament Details';
-require_once __DIR__ . '/../../../includes/header.php';
-?>
-
+<?php require_once __DIR__ . '/../../../helpers/path_helper.php'; ?>
 <div id="tournamentDetailsContainer">
     <!-- Loading State -->
     <div id="loadingDetailsState" class="text-center py-12">

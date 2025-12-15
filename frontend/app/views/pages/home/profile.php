@@ -1,8 +1,4 @@
-<?php
-require_once __DIR__ . '/../../../helpers/path_helper.php';
-$pageTitle = 'Profile';
-require_once __DIR__ . '/../../../includes/header.php';
-?>
+<?php require_once __DIR__ . '/../../../helpers/path_helper.php'; ?>
 <div class="space-y-6">
     <!-- Profile Header -->
     <div class="relative">
@@ -298,6 +294,3 @@ require_once __DIR__ . '/../../../includes/header.php';
         background-size: 20px 20px;
     }
 </style>
-
-<script type="module" src="<?php echo getAssetPath('js/profile.js'); ?>"></script>
-<?php require_once __DIR__ . "/../../../includes/footer.php"; ?>

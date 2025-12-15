@@ -1,9 +1,4 @@
-<?php
-require_once __DIR__ . '/../../../helpers/path_helper.php';
-$pageTitle = 'Manage Tournaments';
-require_once __DIR__ . '/../../../includes/header.php';
-?>
-
+<?php require_once __DIR__ . '/../../../helpers/path_helper.php'; ?>
 <!-- Notification Toast -->
 <div id="notificationToast" class="hidden fixed top-4 right-4 z-[9999] max-w-md"></div>
 

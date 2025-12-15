@@ -496,13 +496,5 @@ async function init() {
 // Expose init function globally so it can be called from home.js
 window.initProfileData = init;
 
-// Initialize on page load
-// Handle both direct page load and AJAX-loaded content
-if (document.readyState === "loading") {
-  // Still loading, wait for DOMContentLoaded
-  document.addEventListener("DOMContentLoaded", init);
-} else {
-  // DOM already loaded (e.g., via AJAX), run immediately
-  console.log("DOM already loaded, running init immediately");
-  init();
-}
+// Don't auto-initialize - let home.js call initProfileData when needed
+// This prevents conflicts when dynamically loading the script

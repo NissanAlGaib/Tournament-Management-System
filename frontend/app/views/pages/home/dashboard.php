@@ -1,8 +1,4 @@
-<?php
-require_once __DIR__ . '/../../../helpers/path_helper.php';
-$pageTitle = 'Dashboard';
-require_once __DIR__ . '/../../../includes/header.php';
-?>
+<?php require_once __DIR__ . '/../../../helpers/path_helper.php'; ?>
 <div class="space-y-6">
     <!-- Dashboard Header -->
     <div class="relative">
@@ -142,4 +138,3 @@ require_once __DIR__ . '/../../../includes/header.php';
         </div>
     </div>
 </div>
-<?php require_once __DIR__ . "/../../../includes/footer.php"; ?>
