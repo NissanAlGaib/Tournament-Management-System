@@ -236,6 +236,25 @@ require_once __DIR__ . '/../../../includes/header.php';
                 
                 ${tournament.description ? `<p class="text-gray-300 mb-4">${escapeHtml(tournament.description)}</p>` : ''}
                 
+                <!-- Winner Announcement (if completed) -->
+                ${tournament.status === 'completed' && (tournament.winner_name || tournament.winner_team_name) ? `
+                    <div class="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border-2 border-yellow-500/50 rounded-xl p-6 mb-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0">
+                                <svg class="w-16 h-16 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-2xl font-bold text-yellow-400 mb-1">🏆 Tournament Winner</h3>
+                                <p class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
+                                    ${escapeHtml(tournament.winner_team_name || tournament.winner_name)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                
                 <!-- Key Info Grid -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-gray-700/50 rounded-lg p-4">
@@ -353,9 +372,9 @@ require_once __DIR__ . '/../../../includes/header.php';
                                     <div class="bg-gray-800/50 rounded-lg p-4 border border-yellow-500/20">
                                         <div class="flex justify-between items-center mb-2">
                                             <span class="text-yellow-400 font-bold">${getPlacementText(prize.placement)}</span>
-                                            <span class="text-white font-bold text-lg">${formatPrizeAmount(prize.amount, prize.currency)}</span>
+                                            <span class="text-white font-bold text-lg">${formatPrizeAmount(prize.prize_amount, prize.currency)}</span>
                                         </div>
-                                        ${prize.description ? `<p class="text-gray-400 text-sm">${escapeHtml(prize.description)}</p>` : ''}
+                                        ${prize.prize_description ? `<p class="text-gray-400 text-sm">${escapeHtml(prize.prize_description)}</p>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
@@ -468,7 +487,11 @@ require_once __DIR__ . '/../../../includes/header.php';
                 'GBP': '£'
             };
             const symbol = symbols[currency] || currency;
-            return `${symbol}${parseFloat(amount).toFixed(2)}`;
+            const numAmount = parseFloat(amount);
+            if (isNaN(numAmount)) {
+                return 'TBD';
+            }
+            return `${symbol}${numAmount.toFixed(2)}`;
         }
 
         function showError(message) {
