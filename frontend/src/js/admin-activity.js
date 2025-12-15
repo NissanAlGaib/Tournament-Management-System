@@ -1,7 +1,8 @@
 // Admin Activity Monitoring JavaScript
 import { 
     isAdmin,
-    getAllUsers
+    getActiveSessions,
+    getActivityLog
 } from './core/auth.js';
 import { displayUserRoleBadges } from './roleUtils.js';
 import { getPagePath } from './pathHelper.js';
@@ -24,25 +25,7 @@ async function loadActiveSessions() {
     
     try {
         // Fetch active sessions from backend
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/GitHub Repos/Tournament-Management-System/backend/api/admin_api.php?action=active-sessions', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            credentials: 'include'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch active sessions');
-        }
-        
-        const data = await response.json();
-        
-        if (!data.success || !data.sessions) {
-            throw new Error('Invalid response from server');
-        }
-        
-        const activeSessions = data.sessions;
+        const activeSessions = await getActiveSessions();
         
         if (activeSessions.length === 0) {
             container.innerHTML = `
@@ -105,25 +88,7 @@ async function loadActivityLog() {
     
     try {
         // Fetch activity log from backend
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/GitHub Repos/Tournament-Management-System/backend/api/admin_api.php?action=activity-log', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            credentials: 'include'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch activity log');
-        }
-        
-        const data = await response.json();
-        
-        if (!data.success || !data.activities) {
-            throw new Error('Invalid response from server');
-        }
-        
-        const activities = data.activities;
+        const activities = await getActivityLog();
         
         if (activities.length === 0) {
             container.innerHTML = `

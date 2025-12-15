@@ -3,7 +3,9 @@ import {
     isAdmin,
     getCurrentUser,
     getAllUsers,
-    getPendingRoleRequests
+    getPendingRoleRequests,
+    getDashboardStats,
+    getActivityLog
 } from './core/auth.js';
 import { displayUserRoleBadges } from './roleUtils.js';
 import { getPagePath } from './pathHelper.js';
@@ -32,28 +34,19 @@ async function loadDashboardStats() {
         document.getElementById('pending-requests').textContent = requests.length;
 
         // Get dashboard stats from backend
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/GitHub Repos/Tournament-Management-System/backend/api/admin_api.php?action=dashboard-stats', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            credentials: 'include'
-        });
+        const stats = await getDashboardStats();
         
-        if (!response.ok) {
-            throw new Error('Failed to fetch dashboard stats');
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.stats) {
-            document.getElementById('active-sessions').textContent = data.stats.active_sessions;
+        if (stats) {
+            document.getElementById('active-sessions').textContent = stats.active_sessions;
             
             // Update tournaments count in the HTML
             const tournamentCountEl = document.querySelector('#total-tournaments');
             if (tournamentCountEl) {
-                tournamentCountEl.textContent = data.stats.tournament_count;
+                tournamentCountEl.textContent = stats.tournament_count;
             }
+        } else {
+            // Set fallback values on error
+            document.getElementById('active-sessions').textContent = '0';
         }
 
         return { users, requests };
@@ -129,21 +122,9 @@ async function displayRecentActivity(requests) {
 
     try {
         // Fetch activity log from backend
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/GitHub Repos/Tournament-Management-System/backend/api/admin_api.php?action=activity-log', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            credentials: 'include'
-        });
+        const activities = await getActivityLog();
         
-        if (!response.ok) {
-            throw new Error('Failed to fetch activity log');
-        }
-        
-        const data = await response.json();
-        
-        if (!data.success || !data.activities || data.activities.length === 0) {
+        if (!activities || activities.length === 0) {
             container.innerHTML = `
                 <div class="text-center text-gray-400 py-8">
                     <svg class="w-12 h-12 mx-auto mb-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,8 +135,6 @@ async function displayRecentActivity(requests) {
             `;
             return;
         }
-
-        const activities = data.activities;
 
         // Sort by time
         activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
