@@ -493,6 +493,9 @@ async function init() {
   }
 }
 
+// Expose init function globally so it can be called from home.js
+window.initProfileData = init;
+
 // Initialize on page load
 // Handle both direct page load and AJAX-loaded content
 if (document.readyState === "loading") {

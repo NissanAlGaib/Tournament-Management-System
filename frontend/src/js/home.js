@@ -385,6 +385,11 @@ function setupProfile() {
     emailEl.textContent = user.email;
   }
 
+  // Trigger profile data loading if profile.js functions are available
+  if (typeof window.initProfileData === "function") {
+    window.initProfileData();
+  }
+
   // Setup logout button in profile
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
