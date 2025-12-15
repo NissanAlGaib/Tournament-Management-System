@@ -34,7 +34,7 @@ require_once __DIR__ . '/../../../includes/header.php';
                         </svg>
                     </div>
                     <div class="text-right">
-                        <p class="text-3xl font-bold text-white">12</p>
+                        <p id="stat-total-tournaments" class="text-3xl font-bold text-white">0</p>
                         <p class="text-sm text-gray-400">Total Tournaments</p>
                     </div>
                 </div>
@@ -55,7 +55,7 @@ require_once __DIR__ . '/../../../includes/header.php';
                         </svg>
                     </div>
                     <div class="text-right">
-                        <p class="text-3xl font-bold text-white">5</p>
+                        <p id="stat-active-tournaments" class="text-3xl font-bold text-white">0</p>
                         <p class="text-sm text-gray-400">Active Now</p>
                     </div>
                 </div>
@@ -76,7 +76,7 @@ require_once __DIR__ . '/../../../includes/header.php';
                         </svg>
                     </div>
                     <div class="text-right">
-                        <p class="text-3xl font-bold text-white">8</p>
+                        <p id="stat-championships" class="text-3xl font-bold text-white">0</p>
                         <p class="text-sm text-gray-400">Championships</p>
                     </div>
                 </div>
@@ -99,7 +99,7 @@ require_once __DIR__ . '/../../../includes/header.php';
                     Recent Activity
                 </h2>
             </div>
-            <div class="p-6 space-y-4">
+            <div id="recent-activity-container" class="p-6 space-y-4">
                 <!-- Activity Item -->
                 <div class="flex items-start space-x-4 p-4 bg-gray-900 rounded-xl border border-gray-700 hover:border-cyan-500/50 transition-colors">
                     <div class="flex-shrink-0 p-2 bg-cyan-500/20 rounded-lg">

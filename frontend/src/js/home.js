@@ -219,6 +219,155 @@ function setupDashboard() {
   if (usernameEl && user) {
     usernameEl.textContent = user.username;
   }
+
+  // Fetch and display dashboard stats
+  fetchDashboardStats();
+  fetchRecentActivity();
+}
+
+/**
+ * Fetch dashboard statistics from backend
+ */
+async function fetchDashboardStats() {
+  try {
+    const token = Auth.getToken();
+    const response = await fetch(
+      "/GitHub%20Repos/Tournament-Management-System/backend/api/player_stats_api.php?action=stats",
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Dashboard Stats API Error:", errorData);
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    if (data.success && data.stats) {
+      displayDashboardStats(data.stats);
+    }
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+  }
+}
+
+/**
+ * Display dashboard statistics
+ */
+function displayDashboardStats(stats) {
+  const totalTournamentsEl = document.getElementById("stat-total-tournaments");
+  const activeTournamentsEl = document.getElementById(
+    "stat-active-tournaments"
+  );
+  const championshipsEl = document.getElementById("stat-championships");
+
+  if (totalTournamentsEl)
+    totalTournamentsEl.textContent = stats.total_tournaments || 0;
+  if (activeTournamentsEl)
+    activeTournamentsEl.textContent = stats.active_tournaments || 0;
+  if (championshipsEl) championshipsEl.textContent = stats.championships || 0;
+}
+
+/**
+ * Fetch recent activity from backend
+ */
+async function fetchRecentActivity() {
+  try {
+    const token = Auth.getToken();
+    const response = await fetch(
+      "/GitHub%20Repos/Tournament-Management-System/backend/api/player_stats_api.php?action=recent_activity&limit=10",
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Recent Activity API Error:", errorData);
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    if (data.success && data.activities) {
+      displayRecentActivity(data.activities);
+    }
+  } catch (error) {
+    console.error("Error fetching recent activity:", error);
+  }
+}
+
+/**
+ * Display recent activity
+ */
+function displayRecentActivity(activities) {
+  const container = document.getElementById("recent-activity-container");
+  if (!container) return;
+
+  if (activities.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-8">
+        <p class="text-gray-400">No recent activity</p>
+        <p class="text-sm text-gray-500 mt-2">Join a tournament to get started!</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = activities
+    .map((activity) => {
+      const iconData = getActivityIcon(activity.type);
+      const timeAgo = getTimeAgo(activity.date);
+
+      return `
+      <div class="flex items-start space-x-4 p-4 bg-gray-900 rounded-xl border border-gray-700 hover:border-cyan-500/50 transition-colors">
+        <div class="flex-shrink-0 p-2 bg-${iconData.color}-500/20 rounded-lg">
+          ${iconData.icon}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-white font-medium">${activity.message}</p>
+          <p class="text-sm text-gray-400 mt-1">${timeAgo}</p>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+/**
+ * Get icon for activity type
+ */
+function getActivityIcon(type) {
+  const icons = {
+    championship: {
+      color: "cyan",
+      icon: '<svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+    },
+    win: {
+      color: "green",
+      icon: '<svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+    },
+    registration: {
+      color: "purple",
+      icon: '<svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>',
+    },
+  };
+  return icons[type] || icons.registration;
 }
 
 // Setup profile functionality
