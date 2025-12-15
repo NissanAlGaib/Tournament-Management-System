@@ -8,12 +8,17 @@ A modern tournament management system with role-based access control, JWT authen
 - **Tournament Creation**: Organizers can create tournaments with custom configurations
 - **Multiple Formats**: Single elimination, double elimination, round robin, Swiss, and custom formats
 - **Registration Management**: Configurable registration requirements and deadlines
+- **Organizer Dashboard**: Dedicated interface for organizers to manage their tournaments
+  - View all created tournaments with participant statistics
+  - Manage participant registrations (approve/reject)
+  - View and manage teams (for team-based tournaments)
+  - Real-time participant status tracking
 - **Match Tracking**: Complete match result tracking and verification system
 - **Prize Management**: Flexible prize pool setup with multiple prize types (cash, trophies, medals, points)
 - **Standings & Leaderboard**: Real-time tournament standings and rankings
 - **Tournament Status**: Full lifecycle management (draft, open, ongoing, completed, cancelled)
 - **Team Support**: Optional team tournament functionality
-- **Notifications**: Tournament announcements and updates system
+- **Notifications**: Tournament announcements and updates system with modern toast notifications
 - **Activity Logging**: Complete audit trail for all tournament actions
 
 ### Authentication & Security
@@ -166,6 +171,7 @@ A modern tournament management system with role-based access control, JWT authen
 - **📗 [Quick Reference](ROLE_REFERENCE.md)** - Code snippets and API examples
 - **📙 [Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Overview of what's been built
 - **🏆 [Tournament Setup Guide](backend/database/TOURNAMENT_SETUP_README.md)** - Tournament database integration guide
+- **👤 [Organizer Guide](ORGANIZER_GUIDE.md)** - Guide for managing tournaments as an organizer
 
 4. **Install frontend dependencies**
    ```bash

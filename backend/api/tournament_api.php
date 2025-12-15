@@ -203,6 +203,173 @@ try {
                     "success" => true,
                     "leaderboard" => $leaderboard
                 ]);
+            } elseif ($action === 'organized-tournaments') {
+                // Get tournaments organized by current user
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                $query = "SELECT t.*, 
+                         COUNT(DISTINCT CASE WHEN tp.registration_status = 'confirmed' THEN tp.id END) as confirmed_count,
+                         COUNT(DISTINCT CASE WHEN tp.registration_status = 'pending' THEN tp.id END) as pending_count,
+                         COUNT(DISTINCT CASE WHEN tp.registration_status = 'rejected' THEN tp.id END) as rejected_count
+                         FROM tournaments t
+                         LEFT JOIN tournament_participants tp ON t.id = tp.tournament_id
+                         WHERE t.organizer_id = :user_id
+                         GROUP BY t.id
+                         ORDER BY t.created_at DESC";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':user_id', $user['user_id']);
+                $stmt->execute();
+                $tournaments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode([
+                    "success" => true,
+                    "tournaments" => $tournaments
+                ]);
+            } elseif ($action === 'tournament-participants' && isset($_GET['tournament_id'])) {
+                // Get participants for a tournament (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+                $tournamentId = $_GET['tournament_id'];
+
+                // Verify ownership or admin
+                $checkQuery = "SELECT organizer_id FROM tournaments WHERE id = :id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':id', $tournamentId);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to view participants for this tournament');
+                }
+
+                // Get participants with user details
+                $query = "SELECT tp.*, u.username, u.email,
+                         tt.team_name, tt.id as team_id
+                         FROM tournament_participants tp
+                         INNER JOIN users u ON tp.user_id = u.id
+                         LEFT JOIN tournament_team_members ttm ON tp.user_id = ttm.user_id
+                         LEFT JOIN tournament_teams tt ON ttm.team_id = tt.id AND tt.tournament_id = tp.tournament_id
+                         WHERE tp.tournament_id = :tournament_id
+                         ORDER BY tp.registration_status, tp.registered_at DESC";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':tournament_id', $tournamentId);
+                $stmt->execute();
+                $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode([
+                    "success" => true,
+                    "participants" => $participants
+                ]);
+            } elseif ($action === 'tournament-teams' && isset($_GET['tournament_id'])) {
+                // Get teams for a tournament (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+                $tournamentId = $_GET['tournament_id'];
+
+                // Verify ownership or admin
+                $checkQuery = "SELECT organizer_id FROM tournaments WHERE id = :id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':id', $tournamentId);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to view teams for this tournament');
+                }
+
+                // Get teams with member counts
+                $query = "SELECT tt.*, u.username as captain_name,
+                         COUNT(DISTINCT ttm.id) as member_count
+                         FROM tournament_teams tt
+                         INNER JOIN users u ON tt.captain_user_id = u.id
+                         LEFT JOIN tournament_team_members ttm ON tt.id = ttm.team_id
+                         WHERE tt.tournament_id = :tournament_id
+                         GROUP BY tt.id
+                         ORDER BY tt.created_at DESC";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':tournament_id', $tournamentId);
+                $stmt->execute();
+                $teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode([
+                    "success" => true,
+                    "teams" => $teams
+                ]);
+            } elseif ($action === 'tournament-bracket' && isset($_GET['tournament_id'])) {
+                // Get bracket for a tournament (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+                $tournamentId = $_GET['tournament_id'];
+
+                // Verify ownership or admin
+                $checkQuery = "SELECT organizer_id, format, tournament_size, is_team_based, status, winner_name, winner_team_name FROM tournaments WHERE id = :id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':id', $tournamentId);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to view bracket for this tournament');
+                }
+
+                // Get all matches with participant details
+                // For team-based tournaments, we need to get team info differently
+                if ($tournament['is_team_based']) {
+                    // For team tournaments, participant1_id and participant2_id should reference teams
+                    $query = "SELECT m.*, 
+                             m.participant1_id as participant1_team_id, 
+                             tt1.team_name as participant1_team_name, 
+                             tt1.team_tag as participant1_team_tag,
+                             m.participant2_id as participant2_team_id,
+                             tt2.team_name as participant2_team_name, 
+                             tt2.team_tag as participant2_team_tag,
+                             m.winner_id as winner_team_id,
+                             ttw.team_name as winner_team_name
+                             FROM matches m
+                             LEFT JOIN tournament_teams tt1 ON m.participant1_id = tt1.id
+                             LEFT JOIN tournament_teams tt2 ON m.participant2_id = tt2.id
+                             LEFT JOIN tournament_teams ttw ON m.winner_id = ttw.id
+                             WHERE m.tournament_id = :tournament_id
+                             ORDER BY m.round_number, m.match_number";
+                } else {
+                    // For individual tournaments, use tournament_participants
+                    $query = "SELECT m.*, 
+                             p1.user_id as participant1_user_id, u1.username as participant1_name,
+                             p2.user_id as participant2_user_id, u2.username as participant2_name,
+                             pw.user_id as winner_user_id, uw.username as winner_name
+                             FROM matches m
+                             LEFT JOIN tournament_participants p1 ON m.participant1_id = p1.id
+                             LEFT JOIN users u1 ON p1.user_id = u1.id
+                             LEFT JOIN tournament_participants p2 ON m.participant2_id = p2.id
+                             LEFT JOIN users u2 ON p2.user_id = u2.id
+                             LEFT JOIN tournament_participants pw ON m.winner_id = pw.id
+                             LEFT JOIN users uw ON pw.user_id = uw.id
+                             WHERE m.tournament_id = :tournament_id
+                             ORDER BY m.round_number, m.match_number";
+                }
+
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(':tournament_id', $tournamentId);
+                $stmt->execute();
+                $matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode([
+                    "success" => true,
+                    "tournament" => $tournament,
+                    "matches" => $matches
+                ]);
             } else {
                 throw new Exception('Invalid action or missing parameters');
             }
@@ -831,6 +998,605 @@ try {
                     "success" => true,
                     "message" => "All notifications marked as read"
                 ]);
+            } elseif ($action === 'approve-participant') {
+                // Approve participant registration (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['participant_id'])) {
+                    throw new Exception('Participant ID is required');
+                }
+
+                // Get participant and tournament info
+                $checkQuery = "SELECT tp.*, t.organizer_id, t.max_participants, t.current_participants
+                              FROM tournament_participants tp
+                              INNER JOIN tournaments t ON tp.tournament_id = t.id
+                              WHERE tp.id = :participant_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':participant_id', $data['participant_id']);
+                $checkStmt->execute();
+                $participant = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$participant) {
+                    throw new Exception('Participant not found');
+                }
+
+                // Verify ownership or admin
+                $roles = array_column($user['roles'], 'role_name');
+                if ($participant['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                // Check if tournament is full
+                if ($participant['max_participants'] && $participant['current_participants'] >= $participant['max_participants']) {
+                    throw new Exception('Tournament is full');
+                }
+
+                // Update participant status to confirmed
+                $updateQuery = "UPDATE tournament_participants 
+                               SET registration_status = 'confirmed'
+                               WHERE id = :participant_id";
+                $updateStmt = $db->prepare($updateQuery);
+                $updateStmt->bindParam(':participant_id', $data['participant_id']);
+                $updateStmt->execute();
+
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Participant approved successfully"
+                ]);
+            } elseif ($action === 'reject-participant') {
+                // Reject participant registration (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['participant_id'])) {
+                    throw new Exception('Participant ID is required');
+                }
+
+                // Get participant and tournament info
+                $checkQuery = "SELECT tp.*, t.organizer_id
+                              FROM tournament_participants tp
+                              INNER JOIN tournaments t ON tp.tournament_id = t.id
+                              WHERE tp.id = :participant_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':participant_id', $data['participant_id']);
+                $checkStmt->execute();
+                $participant = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$participant) {
+                    throw new Exception('Participant not found');
+                }
+
+                // Verify ownership or admin
+                $roles = array_column($user['roles'], 'role_name');
+                if ($participant['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                // Update participant status to rejected
+                $updateQuery = "UPDATE tournament_participants 
+                               SET registration_status = 'rejected'
+                               WHERE id = :participant_id";
+                $updateStmt = $db->prepare($updateQuery);
+                $updateStmt->bindParam(':participant_id', $data['participant_id']);
+                $updateStmt->execute();
+
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Participant rejected successfully"
+                ]);
+            } elseif ($action === 'generate-bracket') {
+                // Generate bracket for tournament (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['tournament_id'])) {
+                    throw new Exception('Tournament ID is required');
+                }
+
+                $tournamentId = $data['tournament_id'];
+
+                // Verify ownership and get tournament details
+                $checkQuery = "SELECT t.*
+                              FROM tournaments t
+                              WHERE t.id = :id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':id', $tournamentId);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                // Check if bracket already exists
+                $existingQuery = "SELECT COUNT(*) as count FROM matches WHERE tournament_id = :id";
+                $existingStmt = $db->prepare($existingQuery);
+                $existingStmt->bindParam(':id', $tournamentId);
+                $existingStmt->execute();
+                if ($existingStmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
+                    throw new Exception('Bracket already exists for this tournament');
+                }
+
+                // Get participants based on tournament type
+                if ($tournament['is_team_based']) {
+                    // For team-based tournaments, get teams
+                    $participantsQuery = "SELECT id FROM tournament_teams 
+                                         WHERE tournament_id = :id AND team_status = 'active'
+                                         ORDER BY created_at";
+                } else {
+                    // For individual tournaments, get confirmed participants
+                    $participantsQuery = "SELECT id FROM tournament_participants 
+                                         WHERE tournament_id = :id AND registration_status = 'confirmed'
+                                         ORDER BY registered_at";
+                }
+                $participantsStmt = $db->prepare($participantsQuery);
+                $participantsStmt->bindParam(':id', $tournamentId);
+                $participantsStmt->execute();
+                $participants = $participantsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (count($participants) < 2) {
+                    throw new Exception('Need at least 2 participants to generate bracket');
+                }
+
+                $db->beginTransaction();
+
+                try {
+                    // Calculate rounds needed
+                    $participantCount = count($participants);
+                    $rounds = ceil(log($participantCount, 2));
+                    $bracketSize = pow(2, $rounds);
+
+                    // Generate first round matches
+                    $matchNumber = 1;
+                    $currentRound = 1;
+                    $byeMatches = []; // Track bye matches to advance winners
+
+                    // Pair up participants for first round
+                    for ($i = 0; $i < $bracketSize; $i += 2) {
+                        $participant1 = isset($participants[$i]) ? $participants[$i]['id'] : null;
+                        $participant2 = isset($participants[$i + 1]) ? $participants[$i + 1]['id'] : null;
+
+                        // Skip if both slots are empty
+                        if (!$participant1 && !$participant2) {
+                            continue;
+                        }
+
+                        $insertQuery = "INSERT INTO matches 
+                                       (tournament_id, round_number, match_number, participant1_id, participant2_id, match_status, winner_id)
+                                       VALUES (:tournament_id, :round_number, :match_number, :participant1_id, :participant2_id, :match_status, :winner_id)";
+                        $insertStmt = $db->prepare($insertQuery);
+                        $insertStmt->bindParam(':tournament_id', $tournamentId);
+                        $insertStmt->bindParam(':round_number', $currentRound);
+                        $insertStmt->bindParam(':match_number', $matchNumber);
+                        $insertStmt->bindParam(':participant1_id', $participant1);
+                        $insertStmt->bindParam(':participant2_id', $participant2);
+
+                        // If only one participant, mark as bye and set them as winner
+                        if (!$participant1 || !$participant2) {
+                            $status = 'bye';
+                            $winnerId = $participant1 ?: $participant2;
+                        } else {
+                            $status = 'scheduled';
+                            $winnerId = null;
+                        }
+                        $insertStmt->bindParam(':match_status', $status);
+                        $insertStmt->bindParam(':winner_id', $winnerId);
+                        $insertStmt->execute();
+                        $matchId = $db->lastInsertId();
+
+                        // If bye match, advance winner to next round
+                        if ($status === 'bye' && $winnerId) {
+                            $nextRound = $currentRound + 1;
+                            $nextMatchNum = ceil($matchNumber / 2);
+
+                            // We'll set this after creating all first round matches
+                            $byeMatches[] = [
+                                'winner_id' => $winnerId,
+                                'next_round' => $nextRound,
+                                'next_match_num' => $nextMatchNum,
+                                'current_match_num' => $matchNumber
+                            ];
+                        }
+
+                        $matchNumber++;
+                    }
+
+                    // Generate placeholder matches for subsequent rounds
+                    $matchesInPreviousRound = $matchNumber - 1;
+                    for ($round = 2; $round <= $rounds; $round++) {
+                        $matchesInRound = ceil($matchesInPreviousRound / 2);
+                        for ($i = 1; $i <= $matchesInRound; $i++) {
+                            $insertQuery = "INSERT INTO matches 
+                                           (tournament_id, round_number, match_number, match_status)
+                                           VALUES (:tournament_id, :round_number, :match_number, 'scheduled')";
+                            $insertStmt = $db->prepare($insertQuery);
+                            $insertStmt->bindParam(':tournament_id', $tournamentId);
+                            $insertStmt->bindParam(':round_number', $round);
+                            $insertStmt->bindParam(':match_number', $i);
+                            $insertStmt->execute();
+                        }
+                        $matchesInPreviousRound = $matchesInRound;
+                    }
+
+                    // Process bye matches - advance winners to next round
+                    foreach ($byeMatches as $bye) {
+                        $updateQuery = "UPDATE matches 
+                                       SET " . ($bye['current_match_num'] % 2 == 1 ? "participant1_id" : "participant2_id") . " = :winner_id
+                                       WHERE tournament_id = :tournament_id 
+                                       AND round_number = :round_number 
+                                       AND match_number = :match_number";
+                        $updateStmt = $db->prepare($updateQuery);
+                        $updateStmt->bindParam(':winner_id', $bye['winner_id']);
+                        $updateStmt->bindParam(':tournament_id', $tournamentId);
+                        $updateStmt->bindParam(':round_number', $bye['next_round']);
+                        $updateStmt->bindParam(':match_number', $bye['next_match_num']);
+                        $updateStmt->execute();
+                    }
+
+                    $db->commit();
+
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "Bracket generated successfully",
+                        "rounds" => $rounds
+                    ]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
+            } elseif ($action === 'set-match-winner') {
+                // Set match winner and advance to next round (Organizer/Admin only)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['match_id']) || !isset($data['winner_id'])) {
+                    throw new Exception('Match ID and winner ID are required');
+                }
+
+                // Get match and tournament info
+                $checkQuery = "SELECT m.*, t.organizer_id, t.format
+                              FROM matches m
+                              INNER JOIN tournaments t ON m.tournament_id = t.id
+                              WHERE m.id = :match_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':match_id', $data['match_id']);
+                $checkStmt->execute();
+                $match = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$match) {
+                    throw new Exception('Match not found');
+                }
+
+                // Verify ownership or admin
+                $roles = array_column($user['roles'], 'role_name');
+                if ($match['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                // Verify winner is a valid participant in this match
+                if ($data['winner_id'] != $match['participant1_id'] && $data['winner_id'] != $match['participant2_id']) {
+                    throw new Exception('Winner must be one of the match participants');
+                }
+
+                $db->beginTransaction();
+
+                try {
+                    // Update match with winner
+                    $updateQuery = "UPDATE matches 
+                                   SET winner_id = :winner_id, 
+                                       match_status = 'completed',
+                                       end_time = NOW()
+                                   WHERE id = :match_id";
+                    $updateStmt = $db->prepare($updateQuery);
+                    $updateStmt->bindParam(':winner_id', $data['winner_id']);
+                    $updateStmt->bindParam(':match_id', $data['match_id']);
+                    $updateStmt->execute();
+
+                    // Find and update next round match
+                    $currentRound = $match['round_number'];
+                    $currentMatchNum = $match['match_number'];
+                    $nextRound = $currentRound + 1;
+                    $nextMatchNum = ceil($currentMatchNum / 2);
+
+                    // Check if next round match exists
+                    $nextMatchQuery = "SELECT id, participant1_id, participant2_id 
+                                      FROM matches 
+                                      WHERE tournament_id = :tournament_id 
+                                      AND round_number = :round_number 
+                                      AND match_number = :match_number";
+                    $nextMatchStmt = $db->prepare($nextMatchQuery);
+                    $nextMatchStmt->bindParam(':tournament_id', $match['tournament_id']);
+                    $nextMatchStmt->bindParam(':round_number', $nextRound);
+                    $nextMatchStmt->bindParam(':match_number', $nextMatchNum);
+                    $nextMatchStmt->execute();
+                    $nextMatch = $nextMatchStmt->fetch(PDO::FETCH_ASSOC);
+
+                    if ($nextMatch) {
+                        // Determine which slot in next match
+                        // Odd match numbers go to participant1, even to participant2
+                        // But if slot is already occupied, use the other slot
+                        if ($currentMatchNum % 2 == 1) {
+                            // Odd match number - winner should go to participant1_id
+                            if (!$nextMatch['participant1_id']) {
+                                $updateNextQuery = "UPDATE matches SET participant1_id = :winner_id WHERE id = :next_match_id";
+                            } else {
+                                // Slot occupied, use participant2
+                                $updateNextQuery = "UPDATE matches SET participant2_id = :winner_id WHERE id = :next_match_id";
+                            }
+                        } else {
+                            // Even match number - winner should go to participant2_id
+                            if (!$nextMatch['participant2_id']) {
+                                $updateNextQuery = "UPDATE matches SET participant2_id = :winner_id WHERE id = :next_match_id";
+                            } else {
+                                // Slot occupied, use participant1
+                                $updateNextQuery = "UPDATE matches SET participant1_id = :winner_id WHERE id = :next_match_id";
+                            }
+                        }
+                        $updateNextStmt = $db->prepare($updateNextQuery);
+                        $updateNextStmt->bindParam(':winner_id', $data['winner_id']);
+                        $updateNextStmt->bindParam(':next_match_id', $nextMatch['id']);
+                        $updateNextStmt->execute();
+                    }
+
+                    $db->commit();
+
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "Match winner set successfully"
+                    ]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
+            } elseif ($action === 'reset-match') {
+                // Reset a match (clear winner and downstream effects)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['match_id'])) {
+                    throw new Exception('Match ID is required');
+                }
+
+                // Get match and tournament info
+                $checkQuery = "SELECT m.*, t.organizer_id
+                              FROM matches m
+                              INNER JOIN tournaments t ON m.tournament_id = t.id
+                              WHERE m.id = :match_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':match_id', $data['match_id']);
+                $checkStmt->execute();
+                $match = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$match) {
+                    throw new Exception('Match not found');
+                }
+
+                // Verify ownership or admin
+                $roles = array_column($user['roles'], 'role_name');
+                if ($match['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                $db->beginTransaction();
+
+                try {
+                    // Remove winner from current match
+                    $resetQuery = "UPDATE matches 
+                                  SET winner_id = NULL, 
+                                      match_status = 'scheduled',
+                                      end_time = NULL
+                                  WHERE id = :match_id";
+                    $resetStmt = $db->prepare($resetQuery);
+                    $resetStmt->bindParam(':match_id', $data['match_id']);
+                    $resetStmt->execute();
+
+                    // Remove participant from next round match
+                    $currentRound = $match['round_number'];
+                    $currentMatchNum = $match['match_number'];
+                    $nextRound = $currentRound + 1;
+                    $nextMatchNum = ceil($currentMatchNum / 2);
+
+                    // Find next round match and clear the appropriate participant slot
+                    if ($currentMatchNum % 2 == 1) {
+                        $clearNextQuery = "UPDATE matches 
+                                          SET participant1_id = NULL 
+                                          WHERE tournament_id = :tournament_id 
+                                          AND round_number = :round_number 
+                                          AND match_number = :match_number";
+                    } else {
+                        $clearNextQuery = "UPDATE matches 
+                                          SET participant2_id = NULL 
+                                          WHERE tournament_id = :tournament_id 
+                                          AND round_number = :round_number 
+                                          AND match_number = :match_number";
+                    }
+                    $clearNextStmt = $db->prepare($clearNextQuery);
+                    $clearNextStmt->bindParam(':tournament_id', $match['tournament_id']);
+                    $clearNextStmt->bindParam(':round_number', $nextRound);
+                    $clearNextStmt->bindParam(':match_number', $nextMatchNum);
+                    $clearNextStmt->execute();
+
+                    $db->commit();
+
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "Match reset successfully"
+                    ]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
+            } elseif ($action === 'set-tournament-winner') {
+                // Set tournament winner and complete the tournament
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['tournament_id']) || !isset($data['match_id']) || !isset($data['winner_id'])) {
+                    throw new Exception('Tournament ID, match ID, and winner ID are required');
+                }
+
+                // Get tournament info
+                $checkQuery = "SELECT t.*, tt.team_name as winner_team_name
+                              FROM tournaments t
+                              LEFT JOIN tournament_teams tt ON :winner_id = tt.id
+                              WHERE t.id = :tournament_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':tournament_id', $data['tournament_id']);
+                $checkStmt->bindParam(':winner_id', $data['winner_id']);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                // Verify ownership or admin
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                $db->beginTransaction();
+
+                try {
+                    // First, set the finals match winner
+                    $updateMatchQuery = "UPDATE matches 
+                                        SET winner_id = :winner_id, 
+                                            match_status = 'completed',
+                                            end_time = NOW()
+                                        WHERE id = :match_id";
+                    $updateMatchStmt = $db->prepare($updateMatchQuery);
+                    $updateMatchStmt->bindParam(':winner_id', $data['winner_id']);
+                    $updateMatchStmt->bindParam(':match_id', $data['match_id']);
+                    $updateMatchStmt->execute();
+
+                    // Get winner details based on tournament type
+                    if ($tournament['is_team_based']) {
+                        // For team tournaments, get team info
+                        $winnerQuery = "SELECT id, team_name as name FROM tournament_teams WHERE id = :winner_id";
+                    } else {
+                        // For individual tournaments, get user info from participant
+                        $winnerQuery = "SELECT tp.id, u.id as user_id, u.username as name 
+                                       FROM tournament_participants tp 
+                                       JOIN users u ON tp.user_id = u.id 
+                                       WHERE tp.id = :winner_id";
+                    }
+                    $winnerStmt = $db->prepare($winnerQuery);
+                    $winnerStmt->bindParam(':winner_id', $data['winner_id']);
+                    $winnerStmt->execute();
+                    $winner = $winnerStmt->fetch(PDO::FETCH_ASSOC);
+
+                    // Update tournament status to completed and set winner
+                    if ($tournament['is_team_based']) {
+                        $updateTournamentQuery = "UPDATE tournaments 
+                                                 SET status = 'completed', 
+                                                     completed_at = NOW(),
+                                                     winner_team_id = :winner_id,
+                                                     winner_team_name = :winner_name
+                                                 WHERE id = :tournament_id";
+                    } else {
+                        $updateTournamentQuery = "UPDATE tournaments 
+                                                 SET status = 'completed', 
+                                                     completed_at = NOW(),
+                                                     winner_user_id = :winner_user_id,
+                                                     winner_name = :winner_name
+                                                 WHERE id = :tournament_id";
+                    }
+
+                    $updateTournamentStmt = $db->prepare($updateTournamentQuery);
+                    $updateTournamentStmt->bindParam(':tournament_id', $data['tournament_id']);
+
+                    if ($tournament['is_team_based']) {
+                        $updateTournamentStmt->bindParam(':winner_id', $data['winner_id']);
+                        $updateTournamentStmt->bindParam(':winner_name', $winner['name']);
+                    } else {
+                        $updateTournamentStmt->bindParam(':winner_user_id', $winner['user_id']);
+                        $updateTournamentStmt->bindParam(':winner_name', $winner['name']);
+                    }
+
+                    $updateTournamentStmt->execute();
+
+                    $db->commit();
+
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "Tournament completed! Champion: " . $winner['name']
+                    ]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
+            } elseif ($action === 'reset-all-matches') {
+                // Reset all matches in a tournament (clear all winners)
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['tournament_id'])) {
+                    throw new Exception('Tournament ID is required');
+                }
+
+                // Verify ownership or admin
+                $checkQuery = "SELECT organizer_id FROM tournaments WHERE id = :id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':id', $data['tournament_id']);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                $db->beginTransaction();
+
+                try {
+                    // Get all rounds to process from highest to lowest
+                    $roundsQuery = "SELECT DISTINCT round_number FROM matches 
+                                   WHERE tournament_id = :tournament_id 
+                                   ORDER BY round_number DESC";
+                    $roundsStmt = $db->prepare($roundsQuery);
+                    $roundsStmt->bindParam(':tournament_id', $data['tournament_id']);
+                    $roundsStmt->execute();
+                    $rounds = $roundsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    // Clear participants in all rounds except the first round
+                    foreach ($rounds as $round) {
+                        if ($round['round_number'] > 1) {
+                            $clearQuery = "UPDATE matches 
+                                          SET participant1_id = NULL, participant2_id = NULL, 
+                                              winner_id = NULL, match_status = 'scheduled', end_time = NULL
+                                          WHERE tournament_id = :tournament_id 
+                                          AND round_number = :round_number";
+                            $clearStmt = $db->prepare($clearQuery);
+                            $clearStmt->bindParam(':tournament_id', $data['tournament_id']);
+                            $clearStmt->bindParam(':round_number', $round['round_number']);
+                            $clearStmt->execute();
+                        }
+                    }
+
+                    // Reset first round matches (keep participants, clear winners)
+                    $resetFirstQuery = "UPDATE matches 
+                                       SET winner_id = NULL, match_status = 'scheduled', end_time = NULL
+                                       WHERE tournament_id = :tournament_id 
+                                       AND round_number = 1 
+                                       AND match_status != 'bye'";
+                    $resetFirstStmt = $db->prepare($resetFirstQuery);
+                    $resetFirstStmt->bindParam(':tournament_id', $data['tournament_id']);
+                    $resetFirstStmt->execute();
+
+                    $db->commit();
+
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "All matches reset successfully"
+                    ]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
             } else {
                 throw new Exception('Invalid action');
             }

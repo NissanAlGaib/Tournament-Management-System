@@ -15,7 +15,7 @@ require_once __DIR__ . '/../../../includes/header.php';
             
             <!-- Profile Info -->
             <div class="px-8 pb-8">
-                <div class="flex flex-col md:flex-row md:items-end md:space-x-6 -mt-16">
+                <div class="flex flex-col md:flex-row md:items-end md:space-x-6 -mt-16 z-10 relative">
                     <!-- Avatar -->
                     <div class="relative group mb-4 md:mb-0">
                         <div class="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
