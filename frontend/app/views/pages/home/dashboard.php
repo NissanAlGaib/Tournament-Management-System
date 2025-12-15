@@ -1,8 +1,4 @@
-<?php
-require_once __DIR__ . '/../../../helpers/path_helper.php';
-$pageTitle = 'Dashboard';
-require_once __DIR__ . '/../../../includes/header.php';
-?>
+<?php require_once __DIR__ . '/../../../helpers/path_helper.php'; ?>
 <div class="space-y-6">
     <!-- Dashboard Header -->
     <div class="relative">
@@ -34,7 +30,7 @@ require_once __DIR__ . '/../../../includes/header.php';
                         </svg>
                     </div>
                     <div class="text-right">
-                        <p class="text-3xl font-bold text-white">12</p>
+                        <p id="stat-total-tournaments" class="text-3xl font-bold text-white">0</p>
                         <p class="text-sm text-gray-400">Total Tournaments</p>
                     </div>
                 </div>
@@ -55,7 +51,7 @@ require_once __DIR__ . '/../../../includes/header.php';
                         </svg>
                     </div>
                     <div class="text-right">
-                        <p class="text-3xl font-bold text-white">5</p>
+                        <p id="stat-active-tournaments" class="text-3xl font-bold text-white">0</p>
                         <p class="text-sm text-gray-400">Active Now</p>
                     </div>
                 </div>
@@ -76,7 +72,7 @@ require_once __DIR__ . '/../../../includes/header.php';
                         </svg>
                     </div>
                     <div class="text-right">
-                        <p class="text-3xl font-bold text-white">8</p>
+                        <p id="stat-championships" class="text-3xl font-bold text-white">0</p>
                         <p class="text-sm text-gray-400">Championships</p>
                     </div>
                 </div>
@@ -99,47 +95,9 @@ require_once __DIR__ . '/../../../includes/header.php';
                     Recent Activity
                 </h2>
             </div>
-            <div class="p-6 space-y-4">
-                <!-- Activity Item -->
-                <div class="flex items-start space-x-4 p-4 bg-gray-900 rounded-xl border border-gray-700 hover:border-cyan-500/50 transition-colors">
-                    <div class="flex-shrink-0 p-2 bg-cyan-500/20 rounded-lg">
-                        <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-white font-medium">Won Championship in "Summer League 2024"</p>
-                        <p class="text-sm text-gray-400 mt-1">2 hours ago</p>
-                    </div>
-                </div>
-
-                <!-- Activity Item -->
-                <div class="flex items-start space-x-4 p-4 bg-gray-900 rounded-xl border border-gray-700 hover:border-cyan-500/50 transition-colors">
-                    <div class="flex-shrink-0 p-2 bg-purple-500/20 rounded-lg">
-                        <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-white font-medium">Registered for "Winter Championship 2025"</p>
-                        <p class="text-sm text-gray-400 mt-1">1 day ago</p>
-                    </div>
-                </div>
-
-                <!-- Activity Item -->
-                <div class="flex items-start space-x-4 p-4 bg-gray-900 rounded-xl border border-gray-700 hover:border-cyan-500/50 transition-colors">
-                    <div class="flex-shrink-0 p-2 bg-cyan-500/20 rounded-lg">
-                        <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-white font-medium">Joined team "Elite Gamers"</p>
-                        <p class="text-sm text-gray-400 mt-1">3 days ago</p>
-                    </div>
-                </div>
+            <div id="recent-activity-container" class="p-6 space-y-4">
+                <!-- Activity items will be loaded here -->
             </div>
         </div>
     </div>
 </div>
-<?php require_once __DIR__ . "/../../../includes/footer.php"; ?>

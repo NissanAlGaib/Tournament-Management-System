@@ -1,214 +1,278 @@
-<?php
-require_once __DIR__ . '/../../../helpers/path_helper.php';
-$pageTitle = 'Tournament Details';
-require_once __DIR__ . '/../../../includes/header.php';
-?>
+<?php require_once __DIR__ . '/../../../helpers/path_helper.php'; ?>
+<!DOCTYPE html>
+<html lang="en">
 
-<div id="tournamentDetailsContainer">
-    <!-- Loading State -->
-    <div id="loadingDetailsState" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
-        <p class="text-gray-400 mt-4">Loading tournament details...</p>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Details - Tournament Management System</title>
+    <link rel="stylesheet" href="<?php echo getAssetPath('output.css'); ?>">
+    <link rel="stylesheet" href="<?php echo getAssetPath('custom.css'); ?>">
+</head>
+
+<body class="bg-gray-900 min-h-screen">
+    <?php require_once __DIR__ . '/../../../includes/header.php'; ?>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="tournamentDetailsContainer">
+            <!-- Loading State -->
+            <div id="loadingDetailsState" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
+                <p class="text-gray-400 mt-4">Loading tournament details...</p>
+            </div>
+
+            <!-- Tournament Details Content (loaded dynamically) -->
+            <div id="tournamentDetailsContent" class="hidden"></div>
+        </div>
     </div>
 
-    <!-- Tournament Details Content (loaded dynamically) -->
-    <div id="tournamentDetailsContent" class="hidden"></div>
-</div>
+    <!-- Join Tournament Modal -->
+    <div id="joinTournamentModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-2xl border border-cyan-500/30 max-w-md w-full p-6 relative max-h-[90vh] overflow-y-auto">
+            <button type="button" id="closeJoinModal" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
 
-<!-- Join Tournament Modal -->
-<div id="joinTournamentModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-    <div class="bg-gray-800 rounded-2xl border border-cyan-500/30 max-w-md w-full p-6 relative max-h-[90vh] overflow-y-auto">
-        <button type="button" id="closeJoinModal" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
+            <h3 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-4">
+                Join Tournament
+            </h3>
 
-        <h3 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-4">
-            Join Tournament
-        </h3>
+            <form id="joinTournamentForm">
+                <input type="hidden" id="joinTournamentId" name="tournament_id">
+                <input type="hidden" id="isTeamBasedTournament" name="is_team_based" value="0">
 
-        <form id="joinTournamentForm">
-            <input type="hidden" id="joinTournamentId" name="tournament_id">
-            <input type="hidden" id="isTeamBasedTournament" name="is_team_based" value="0">
-
-            <!-- Team-based tournament section -->
-            <div id="teamRegistrationSection" class="hidden">
-                <div class="mb-4 p-3 bg-purple-900/30 border border-purple-500/30 rounded-lg">
-                    <p class="text-sm text-purple-300">
-                        👥 This is a team-based tournament. As team captain, you'll register your entire team.
-                    </p>
-                </div>
-
-                <div class="mb-4">
-                    <label for="team_name" class="block text-sm font-medium text-gray-300 mb-2">
-                        Team Name <span class="text-red-400">*</span>
-                    </label>
-                    <input type="text" id="team_name" name="team_name"
-                        class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
-                        placeholder="Enter team name">
-                </div>
-
-                <div class="mb-4">
-                    <label for="team_tag" class="block text-sm font-medium text-gray-300 mb-2">
-                        Team Tag (Optional)
-                    </label>
-                    <input type="text" id="team_tag" name="team_tag" maxlength="10"
-                        class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
-                        placeholder="e.g., TMS">
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-300 mb-2">
-                        Team Members <span class="text-red-400">*</span>
-                    </label>
-                    <p class="text-xs text-gray-400 mb-3">Enter username for each teammate below:</p>
-                    <div id="teamMembersContainer">
-                        <!-- Team member inputs will be added here dynamically -->
+                <!-- Team-based tournament section -->
+                <div id="teamRegistrationSection" class="hidden">
+                    <div class="mb-4 p-3 bg-purple-900/30 border border-purple-500/30 rounded-lg">
+                        <p class="text-sm text-purple-300">
+                            👥 This is a team-based tournament. As team captain, you'll register your entire team.
+                        </p>
                     </div>
-                    <p id="teamSizeHint" class="text-xs text-cyan-400 mt-2 font-medium"></p>
-                </div>
-            </div>
 
-            <!-- Solo registration section -->
-            <div id="soloRegistrationSection">
-                <div class="mb-4 p-3 bg-cyan-900/30 border border-cyan-500/30 rounded-lg">
-                    <p class="text-sm text-cyan-300">
-                        🏃 You'll be registered as an individual player.
+                    <div class="mb-4">
+                        <label for="team_name" class="block text-sm font-medium text-gray-300 mb-2">
+                            Team Name <span class="text-red-400">*</span>
+                        </label>
+                        <input type="text" id="team_name" name="team_name"
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
+                            placeholder="Enter team name">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="team_tag" class="block text-sm font-medium text-gray-300 mb-2">
+                            Team Tag (Optional)
+                        </label>
+                        <input type="text" id="team_tag" name="team_tag" maxlength="10"
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
+                            placeholder="e.g., TMS">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Team Members <span class="text-red-400">*</span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-3">Enter username for each teammate below:</p>
+                        <div id="teamMembersContainer">
+                            <!-- Team member inputs will be added here dynamically -->
+                        </div>
+                        <p id="teamSizeHint" class="text-xs text-cyan-400 mt-2 font-medium"></p>
+                    </div>
+                </div>
+
+                <!-- Solo registration section -->
+                <div id="soloRegistrationSection">
+                    <div class="mb-4 p-3 bg-cyan-900/30 border border-cyan-500/30 rounded-lg">
+                        <p class="text-sm text-cyan-300">
+                            🏃 You'll be registered as an individual player.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Additional Player Information Section -->
+                <div class="mb-4 border-t border-gray-700 pt-4">
+                    <h4 class="text-lg font-semibold text-cyan-400 mb-3">Player Information</h4>
+                    
+                    <div class="mb-4">
+                        <label for="phone_number" class="block text-sm font-medium text-gray-300 mb-2">
+                            Contact Phone Number
+                        </label>
+                        <input type="tel" id="phone_number" name="phone_number"
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
+                            placeholder="+1234567890">
+                        <p class="text-xs text-gray-400 mt-1">For important tournament updates</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="experience_level" class="block text-sm font-medium text-gray-300 mb-2">
+                            Experience Level
+                        </label>
+                        <select id="experience_level" name="experience_level"
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500">
+                            <option value="">Select experience level</option>
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                            <option value="professional">Professional</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="player_role" class="block text-sm font-medium text-gray-300 mb-2">
+                            Preferred Role/Position (if applicable)
+                        </label>
+                        <input type="text" id="player_role" name="player_role"
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
+                            placeholder="e.g., DPS, Support, Tank">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="additional_info" class="block text-sm font-medium text-gray-300 mb-2">
+                            Additional Information
+                        </label>
+                        <textarea id="additional_info" name="additional_info" rows="2"
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
+                            placeholder="Any relevant information about your playstyle, availability, etc."></textarea>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="registration_notes" class="block text-sm font-medium text-gray-300 mb-2">
+                        Notes to Organizer (Optional):
+                    </label>
+                    <textarea id="registration_notes" name="notes" rows="3"
+                        class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                        placeholder="Any special notes for the tournament organizer..."></textarea>
+                </div>
+
+                <div class="mb-4 p-3 bg-yellow-900/30 border border-yellow-500/30 rounded-lg">
+                    <p class="text-sm text-yellow-300">
+                        ⏳ <strong>Pending Approval:</strong> Your registration will be reviewed by the organizer. You'll receive an email notification once approved.
                     </p>
                 </div>
-            </div>
 
-            <div class="mb-4">
-                <label for="registration_notes" class="block text-sm font-medium text-gray-300 mb-2">
-                    Notes (Optional):
-                </label>
-                <textarea id="registration_notes" name="notes" rows="3"
-                    class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                    placeholder="Any special notes..."></textarea>
-            </div>
-
-            <div class="flex space-x-3">
-                <button type="button" id="cancelJoinBtn" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
-                    Cancel
-                </button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all">
-                    Join Now
-                </button>
-            </div>
-        </form>
+                <div class="flex space-x-3">
+                    <button type="button" id="cancelJoinBtn" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all">
+                        Join Now
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<!-- Team Invite Modal -->
-<div id="teamInviteModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-    <div class="bg-gray-800 rounded-2xl border border-cyan-500/30 max-w-md w-full p-6 relative">
-        <button type="button" id="closeInviteModal" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
+    <!-- Team Invite Modal -->
+    <div id="teamInviteModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-2xl border border-cyan-500/30 max-w-md w-full p-6 relative">
+            <button type="button" id="closeInviteModal" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
 
-        <h3 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-4">
-            Invite Players to Team
-        </h3>
+            <h3 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-4">
+                Invite Players to Team
+            </h3>
 
-        <form id="teamInviteForm">
-            <input type="hidden" id="inviteTeamId" name="team_id">
+            <form id="teamInviteForm">
+                <input type="hidden" id="inviteTeamId" name="team_id">
 
-            <div class="mb-4">
-                <label for="invite_username" class="block text-sm font-medium text-gray-300 mb-2">
-                    Username to Invite:
-                </label>
-                <input type="text" id="invite_username" name="username" required
-                    class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
-                    placeholder="Enter username">
-            </div>
+                <div class="mb-4">
+                    <label for="invite_username" class="block text-sm font-medium text-gray-300 mb-2">
+                        Username to Invite:
+                    </label>
+                    <input type="text" id="invite_username" name="username" required
+                        class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500"
+                        placeholder="Enter username">
+                </div>
 
-            <div class="mb-4">
-                <label for="invite_role" class="block text-sm font-medium text-gray-300 mb-2">
-                    Role:
-                </label>
-                <select id="invite_role" name="role" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500">
-                    <option value="member">Member</option>
-                    <option value="co-captain">Co-Captain</option>
-                </select>
-            </div>
+                <div class="mb-4">
+                    <label for="invite_role" class="block text-sm font-medium text-gray-300 mb-2">
+                        Role:
+                    </label>
+                    <select id="invite_role" name="role" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500">
+                        <option value="member">Member</option>
+                        <option value="co-captain">Co-Captain</option>
+                    </select>
+                </div>
 
-            <div class="flex space-x-3">
-                <button type="button" id="cancelInviteBtn" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
-                    Cancel
-                </button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all">
-                    Send Invite
-                </button>
-            </div>
-        </form>
+                <div class="flex space-x-3">
+                    <button type="button" id="cancelInviteBtn" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all">
+                        Send Invite
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<script>
-    (function() {
-        let currentTournament = null;
-        let currentUserTeam = null;
+    <script>
+        (function() {
+            let currentTournament = null;
+            let currentUserTeam = null;
 
-        // Get tournament ID from URL or pass it dynamically
-        function getTournamentId() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('id') || window.currentTournamentId;
-        }
-
-        // Load tournament details
-        async function loadTournamentDetails() {
-            const tournamentId = getTournamentId();
-
-            if (!tournamentId) {
-                showError('No tournament ID provided');
-                return;
+            // Get tournament ID from URL or pass it dynamically
+            function getTournamentId() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('id') || window.currentTournamentId;
             }
 
-            try {
-                // Get auth token from localStorage
-                const token = localStorage.getItem('auth_token');
-                const headers = {};
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
+            // Load tournament details
+            async function loadTournamentDetails() {
+                const tournamentId = getTournamentId();
+
+                if (!tournamentId) {
+                    showError('No tournament ID provided');
+                    return;
                 }
 
-                const response = await fetch(`<?php echo getBackendPath('api/tournament_api.php'); ?>?action=tournament&id=${tournamentId}`, {
-                    headers: headers
-                });
-                const data = await response.json();
+                try {
+                    // Get auth token from localStorage
+                    const token = localStorage.getItem('auth_token');
+                    const headers = {};
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
 
-                if (data.success && data.tournament) {
-                    currentTournament = data.tournament;
-                    renderTournamentDetails(data.tournament);
-                } else {
-                    throw new Error(data.message || 'Failed to load tournament');
+                    const response = await fetch(`<?php echo getBackendPath('api/tournament_api.php'); ?>?action=tournament&id=${tournamentId}`, {
+                        headers: headers
+                    });
+                    const data = await response.json();
+
+                    if (data.success && data.tournament) {
+                        currentTournament = data.tournament;
+                        renderTournamentDetails(data.tournament);
+                    } else {
+                        throw new Error(data.message || 'Failed to load tournament');
+                    }
+                } catch (error) {
+                    console.error('Error loading tournament:', error);
+                    showError(error.message);
                 }
-            } catch (error) {
-                console.error('Error loading tournament:', error);
-                showError(error.message);
             }
-        }
 
-        // Render tournament details
-        function renderTournamentDetails(tournament) {
-            document.getElementById('loadingDetailsState').classList.add('hidden');
-            const container = document.getElementById('tournamentDetailsContent');
-            container.classList.remove('hidden');
+            // Render tournament details
+            function renderTournamentDetails(tournament) {
+                document.getElementById('loadingDetailsState').classList.add('hidden');
+                const container = document.getElementById('tournamentDetailsContent');
+                container.classList.remove('hidden');
 
-            // Check if user is logged in and get their info
-            const userDataStr = localStorage.getItem('user');
-            const userData = userDataStr ? JSON.parse(userDataStr) : null;
-            const userId = userData ? userData.id : null;
-            const isOrganizer = userId && tournament.organizer_id == userId;
+                // Check if user is logged in and get their info
+                const userDataStr = localStorage.getItem('user');
+                const userData = userDataStr ? JSON.parse(userDataStr) : null;
+                const userId = userData ? userData.id : null;
+                const isOrganizer = userId && tournament.organizer_id == userId;
 
-            const isTeamBased = tournament.is_team_based == 1;
-            const spotsRemaining = (tournament.max_participants || tournament.tournament_size) - (tournament.participants_count || 0);
-            const canJoin = tournament.status === 'open' && spotsRemaining > 0 && !isOrganizer;
+                const isTeamBased = tournament.is_team_based == 1;
+                const spotsRemaining = (tournament.max_participants || tournament.tournament_size) - (tournament.participants_count || 0);
+                const canJoin = tournament.status === 'open' && spotsRemaining > 0 && !isOrganizer;
 
-            container.innerHTML = `
+                container.innerHTML = `
             <!-- Back Button -->
             <button onclick="window.history.back()" class="mb-4 flex items-center text-cyan-400 hover:text-cyan-300 transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -409,96 +473,96 @@ require_once __DIR__ . '/../../../includes/header.php';
             </div>
         `;
 
-            // Setup join button handler
-            const joinBtn = document.getElementById('joinTournamentBtn');
-            if (joinBtn) {
-                joinBtn.addEventListener('click', () => openJoinModal(tournament, isTeamBased));
+                // Setup join button handler
+                const joinBtn = document.getElementById('joinTournamentBtn');
+                if (joinBtn) {
+                    joinBtn.addEventListener('click', () => openJoinModal(tournament, isTeamBased));
+                }
             }
-        }
 
-        // Helper functions
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function getStatusBadgeClass(status) {
-            const classes = {
-                'draft': 'bg-gray-600 text-white',
-                'open': 'bg-green-600 text-white',
-                'registration_closed': 'bg-yellow-600 text-white',
-                'ongoing': 'bg-blue-600 text-white',
-                'completed': 'bg-purple-600 text-white',
-                'cancelled': 'bg-red-600 text-white'
-            };
-            return classes[status] || 'bg-gray-600 text-white';
-        }
-
-        function getStatusText(status) {
-            const texts = {
-                'draft': 'Draft',
-                'open': 'Open for Registration',
-                'registration_closed': 'Registration Closed',
-                'ongoing': 'Ongoing',
-                'completed': 'Completed',
-                'cancelled': 'Cancelled'
-            };
-            return texts[status] || status;
-        }
-
-        function formatTournamentFormat(format) {
-            const formats = {
-                'single_elimination': 'Single Elimination',
-                'double_elimination': 'Double Elimination',
-                'round_robin': 'Round Robin',
-                'swiss': 'Swiss',
-                'custom': 'Custom'
-            };
-            return formats[format] || format;
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return 'TBD';
-            const date = new Date(dateString);
-            return date.toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-
-        function getPlacementText(placement) {
-            const suffixes = {
-                1: 'st',
-                2: 'nd',
-                3: 'rd'
-            };
-            const suffix = suffixes[placement] || 'th';
-            return `${placement}${suffix} Place`;
-        }
-
-        function formatPrizeAmount(amount, currency) {
-            const symbols = {
-                'USD': '$',
-                'EUR': '€',
-                'GBP': '£'
-            };
-            const symbol = symbols[currency] || currency;
-            const numAmount = parseFloat(amount);
-            if (isNaN(numAmount)) {
-                return 'TBD';
+            // Helper functions
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
-            return `${symbol}${numAmount.toFixed(2)}`;
-        }
 
-        function showError(message) {
-            document.getElementById('loadingDetailsState').classList.add('hidden');
-            const container = document.getElementById('tournamentDetailsContent');
-            container.classList.remove('hidden');
-            container.innerHTML = `
+            function getStatusBadgeClass(status) {
+                const classes = {
+                    'draft': 'bg-gray-600 text-white',
+                    'open': 'bg-green-600 text-white',
+                    'registration_closed': 'bg-yellow-600 text-white',
+                    'ongoing': 'bg-blue-600 text-white',
+                    'completed': 'bg-purple-600 text-white',
+                    'cancelled': 'bg-red-600 text-white'
+                };
+                return classes[status] || 'bg-gray-600 text-white';
+            }
+
+            function getStatusText(status) {
+                const texts = {
+                    'draft': 'Draft',
+                    'open': 'Open for Registration',
+                    'registration_closed': 'Registration Closed',
+                    'ongoing': 'Ongoing',
+                    'completed': 'Completed',
+                    'cancelled': 'Cancelled'
+                };
+                return texts[status] || status;
+            }
+
+            function formatTournamentFormat(format) {
+                const formats = {
+                    'single_elimination': 'Single Elimination',
+                    'double_elimination': 'Double Elimination',
+                    'round_robin': 'Round Robin',
+                    'swiss': 'Swiss',
+                    'custom': 'Custom'
+                };
+                return formats[format] || format;
+            }
+
+            function formatDate(dateString) {
+                if (!dateString) return 'TBD';
+                const date = new Date(dateString);
+                return date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+
+            function getPlacementText(placement) {
+                const suffixes = {
+                    1: 'st',
+                    2: 'nd',
+                    3: 'rd'
+                };
+                const suffix = suffixes[placement] || 'th';
+                return `${placement}${suffix} Place`;
+            }
+
+            function formatPrizeAmount(amount, currency) {
+                const symbols = {
+                    'USD': '$',
+                    'EUR': '€',
+                    'GBP': '£'
+                };
+                const symbol = symbols[currency] || currency;
+                const numAmount = parseFloat(amount);
+                if (isNaN(numAmount)) {
+                    return 'TBD';
+                }
+                return `${symbol}${numAmount.toFixed(2)}`;
+            }
+
+            function showError(message) {
+                document.getElementById('loadingDetailsState').classList.add('hidden');
+                const container = document.getElementById('tournamentDetailsContent');
+                container.classList.remove('hidden');
+                container.innerHTML = `
             <div class="text-center py-12">
                 <svg class="w-24 h-24 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -510,211 +574,218 @@ require_once __DIR__ . '/../../../includes/header.php';
                 </button>
             </div>
         `;
-        }
-
-        // Join modal functions
-        function openJoinModal(tournament, isTeamBased) {
-            const modal = document.getElementById('joinTournamentModal');
-            document.getElementById('joinTournamentId').value = tournament.id;
-            document.getElementById('isTeamBasedTournament').value = isTeamBased ? '1' : '0';
-
-            // Show/hide sections based on tournament type
-            if (isTeamBased) {
-                document.getElementById('teamRegistrationSection').classList.remove('hidden');
-                document.getElementById('soloRegistrationSection').classList.add('hidden');
-
-                // Set up team member inputs
-                const teamSize = tournament.team_size || 5;
-                setupTeamMemberInputs(teamSize);
-            } else {
-                document.getElementById('teamRegistrationSection').classList.add('hidden');
-                document.getElementById('soloRegistrationSection').classList.remove('hidden');
             }
 
-            modal.classList.remove('hidden');
-        }
+            // Join modal functions
+            function openJoinModal(tournament, isTeamBased) {
+                const modal = document.getElementById('joinTournamentModal');
+                document.getElementById('joinTournamentId').value = tournament.id;
+                document.getElementById('isTeamBasedTournament').value = isTeamBased ? '1' : '0';
 
-        function setupTeamMemberInputs(teamSize) {
-            const container = document.getElementById('teamMembersContainer');
-            const hint = document.getElementById('teamSizeHint');
-            container.innerHTML = '';
+                // Show/hide sections based on tournament type
+                if (isTeamBased) {
+                    document.getElementById('teamRegistrationSection').classList.remove('hidden');
+                    document.getElementById('soloRegistrationSection').classList.add('hidden');
 
-            // Create teamSize-1 inputs (captain is already counted)
-            for (let i = 0; i < teamSize - 1; i++) {
-                const div = document.createElement('div');
-                div.className = 'mb-3';
+                    // Set up team member inputs
+                    const teamSize = tournament.team_size || 5;
+                    setupTeamMemberInputs(teamSize);
+                } else {
+                    document.getElementById('teamRegistrationSection').classList.add('hidden');
+                    document.getElementById('soloRegistrationSection').classList.remove('hidden');
+                }
 
-                const label = document.createElement('label');
-                label.className = 'block text-xs font-medium text-gray-400 mb-1';
-                label.textContent = `Teammate ${i + 1}`;
-
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.name = `team_member_${i}`;
-                input.className = 'w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500';
-                input.placeholder = `Enter username for teammate ${i + 1}`;
-                input.required = true;
-
-                div.appendChild(label);
-                div.appendChild(input);
-                container.appendChild(div);
+                modal.classList.remove('hidden');
             }
 
-            hint.textContent = `Team needs ${teamSize} players total (you + ${teamSize - 1} teammates)`;
-        }
+            function setupTeamMemberInputs(teamSize) {
+                const container = document.getElementById('teamMembersContainer');
+                const hint = document.getElementById('teamSizeHint');
+                container.innerHTML = '';
 
-        function setupJoinTypeHandlers() {
-            const joinTypeRadios = document.querySelectorAll('input[name="join_type"]');
-            joinTypeRadios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    if (this.value === 'team') {
-                        document.getElementById('teamSelection').classList.remove('hidden');
-                        checkTeamSelection();
-                    } else {
-                        document.getElementById('teamSelection').classList.add('hidden');
-                        document.getElementById('newTeamFields').classList.add('hidden');
-                    }
+                // Create teamSize-1 inputs (captain is already counted)
+                for (let i = 0; i < teamSize - 1; i++) {
+                    const div = document.createElement('div');
+                    div.className = 'mb-3';
+
+                    const label = document.createElement('label');
+                    label.className = 'block text-xs font-medium text-gray-400 mb-1';
+                    label.textContent = `Teammate ${i + 1}`;
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = `team_member_${i}`;
+                    input.className = 'w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-cyan-500';
+                    input.placeholder = `Enter username for teammate ${i + 1}`;
+                    input.required = true;
+
+                    div.appendChild(label);
+                    div.appendChild(input);
+                    container.appendChild(div);
+                }
+
+                hint.textContent = `Team needs ${teamSize} players total (you + ${teamSize - 1} teammates)`;
+            }
+
+            function setupJoinTypeHandlers() {
+                const joinTypeRadios = document.querySelectorAll('input[name="join_type"]');
+                joinTypeRadios.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        if (this.value === 'team') {
+                            document.getElementById('teamSelection').classList.remove('hidden');
+                            checkTeamSelection();
+                        } else {
+                            document.getElementById('teamSelection').classList.add('hidden');
+                            document.getElementById('newTeamFields').classList.add('hidden');
+                        }
+                    });
                 });
+
+                const teamSelect = document.getElementById('team_selection');
+                teamSelect.addEventListener('change', checkTeamSelection);
+            }
+
+            function checkTeamSelection() {
+                const teamSelect = document.getElementById('team_selection');
+                if (teamSelect.value === 'new') {
+                    document.getElementById('newTeamFields').classList.remove('hidden');
+                } else {
+                    document.getElementById('newTeamFields').classList.add('hidden');
+                }
+            }
+
+            // Close modal handlers
+            document.getElementById('closeJoinModal')?.addEventListener('click', () => {
+                document.getElementById('joinTournamentModal').classList.add('hidden');
             });
 
-            const teamSelect = document.getElementById('team_selection');
-            teamSelect.addEventListener('change', checkTeamSelection);
-        }
+            document.getElementById('cancelJoinBtn')?.addEventListener('click', () => {
+                document.getElementById('joinTournamentModal').classList.add('hidden');
+            });
 
-        function checkTeamSelection() {
-            const teamSelect = document.getElementById('team_selection');
-            if (teamSelect.value === 'new') {
-                document.getElementById('newTeamFields').classList.remove('hidden');
-            } else {
-                document.getElementById('newTeamFields').classList.add('hidden');
-            }
-        }
+            document.getElementById('closeInviteModal')?.addEventListener('click', () => {
+                document.getElementById('teamInviteModal').classList.add('hidden');
+            });
 
-        // Close modal handlers
-        document.getElementById('closeJoinModal')?.addEventListener('click', () => {
-            document.getElementById('joinTournamentModal').classList.add('hidden');
-        });
+            document.getElementById('cancelInviteBtn')?.addEventListener('click', () => {
+                document.getElementById('teamInviteModal').classList.add('hidden');
+            });
 
-        document.getElementById('cancelJoinBtn')?.addEventListener('click', () => {
-            document.getElementById('joinTournamentModal').classList.add('hidden');
-        });
+            // Join tournament form submission
+            document.getElementById('joinTournamentForm')?.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-        document.getElementById('closeInviteModal')?.addEventListener('click', () => {
-            document.getElementById('teamInviteModal').classList.add('hidden');
-        });
+                const formData = new FormData(this);
+                const isTeamBased = formData.get('is_team_based') === '1';
 
-        document.getElementById('cancelInviteBtn')?.addEventListener('click', () => {
-            document.getElementById('teamInviteModal').classList.add('hidden');
-        });
+                const data = {
+                    action: 'register',
+                    tournament_id: formData.get('tournament_id'),
+                    notes: formData.get('notes'),
+                    phone_number: formData.get('phone_number'),
+                    experience_level: formData.get('experience_level'),
+                    player_role: formData.get('player_role'),
+                    additional_info: formData.get('additional_info')
+                };
 
-        // Join tournament form submission
-        document.getElementById('joinTournamentForm')?.addEventListener('submit', async function(e) {
-            e.preventDefault();
+                if (isTeamBased) {
+                    // Team-based registration
+                    data.create_team = true;
+                    data.team_name = formData.get('team_name');
+                    data.team_tag = formData.get('team_tag');
 
-            const formData = new FormData(this);
-            const isTeamBased = formData.get('is_team_based') === '1';
-
-            const data = {
-                action: 'register',
-                tournament_id: formData.get('tournament_id'),
-                notes: formData.get('notes')
-            };
-
-            if (isTeamBased) {
-                // Team-based registration
-                data.create_team = true;
-                data.team_name = formData.get('team_name');
-                data.team_tag = formData.get('team_tag');
-
-                // Collect team member usernames
-                const teamMembers = [];
-                let i = 0;
-                while (formData.has(`team_member_${i}`)) {
-                    const username = formData.get(`team_member_${i}`).trim();
-                    if (username) {
-                        teamMembers.push(username);
+                    // Collect team member usernames
+                    const teamMembers = [];
+                    let i = 0;
+                    while (formData.has(`team_member_${i}`)) {
+                        const username = formData.get(`team_member_${i}`).trim();
+                        if (username) {
+                            teamMembers.push(username);
+                        }
+                        i++;
                     }
-                    i++;
+                    data.team_members = teamMembers;
                 }
-                data.team_members = teamMembers;
-            }
 
-            try {
-                const token = localStorage.getItem('auth_token');
-                const headers = {
-                    'Content-Type': 'application/json'
+                try {
+                    const token = localStorage.getItem('auth_token');
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+
+                    const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('Registration submitted successfully! Your application is pending approval by the organizer. You will receive an email notification once reviewed.');
+                        document.getElementById('joinTournamentModal').classList.add('hidden');
+                        this.reset(); // Reset form
+                        loadTournamentDetails(); // Reload to show updated status
+                    } else {
+                        alert('Error: ' + (result.message || 'Failed to join tournament'));
+                    }
+                } catch (error) {
+                    console.error('Error joining tournament:', error);
+                    alert('Error joining tournament: ' + error.message);
+                }
+            });
+
+            // Team invite form submission
+            document.getElementById('teamInviteForm')?.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+                const data = {
+                    action: 'invite_to_team',
+                    team_id: formData.get('team_id'),
+                    username: formData.get('username'),
+                    role: formData.get('role')
                 };
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
+
+                try {
+                    const token = localStorage.getItem('auth_token');
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+
+                    const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
+                        method: 'POST',
+                        headers: headers,
+                        credentials: 'include',
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('Invite sent successfully!');
+                        document.getElementById('teamInviteModal').classList.add('hidden');
+                        this.reset();
+                    } else {
+                        alert('Error: ' + (result.message || 'Failed to send invite'));
+                    }
+                } catch (error) {
+                    console.error('Error sending invite:', error);
+                    alert('Error sending invite: ' + error.message);
                 }
+            });
 
-                const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify(data)
-                });
+            // Initialize
+            loadTournamentDetails();
+        })();
+    </script>
 
-                const result = await response.json();
+</body>
 
-                if (result.success) {
-                    alert('Successfully joined the tournament!');
-                    document.getElementById('joinTournamentModal').classList.add('hidden');
-                    loadTournamentDetails(); // Reload to show updated status
-                } else {
-                    alert('Error: ' + (result.message || 'Failed to join tournament'));
-                }
-            } catch (error) {
-                console.error('Error joining tournament:', error);
-                alert('Error joining tournament: ' + error.message);
-            }
-        });
-
-        // Team invite form submission
-        document.getElementById('teamInviteForm')?.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-            const data = {
-                action: 'invite_to_team',
-                team_id: formData.get('team_id'),
-                username: formData.get('username'),
-                role: formData.get('role')
-            };
-
-            try {
-                const token = localStorage.getItem('auth_token');
-                const headers = {
-                    'Content-Type': 'application/json'
-                };
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
-
-                const response = await fetch('<?php echo getBackendPath('api/tournament_api.php'); ?>', {
-                    method: 'POST',
-                    headers: headers,
-                    credentials: 'include',
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    alert('Invite sent successfully!');
-                    document.getElementById('teamInviteModal').classList.add('hidden');
-                    this.reset();
-                } else {
-                    alert('Error: ' + (result.message || 'Failed to send invite'));
-                }
-            } catch (error) {
-                console.error('Error sending invite:', error);
-                alert('Error sending invite: ' + error.message);
-            }
-        });
-
-        // Initialize
-        loadTournamentDetails();
-    })();
-</script>
-
-<?php require_once __DIR__ . '/../../../includes/footer.php'; ?>
+</html>

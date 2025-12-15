@@ -62,7 +62,6 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
                     </nav>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div id="user-role-badges" class="flex items-center space-x-2"></div>
                     <a href="<?php echo getPagePath('home/index.php'); ?>" class="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -76,9 +75,17 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Page Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-black text-white mb-2">System Activity</h1>
-            <p class="text-gray-400">Monitor system activity and user sessions</p>
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-black text-white mb-2">System Activity</h1>
+                <p class="text-gray-400">Monitor system activity and user sessions</p>
+            </div>
+            <button id="print-activity-btn" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                </svg>
+                <span>Print Report</span>
+            </button>
         </div>
 
         <!-- Activity Grid -->

@@ -1,8 +1,4 @@
-<?php
-require_once __DIR__ . '/../../../helpers/path_helper.php';
-$pageTitle = 'Tournaments';
-require_once __DIR__ . '/../../../includes/header.php';
-?>
+<?php require_once __DIR__ . '/../../../helpers/path_helper.php'; ?>
 <div class="space-y-6">
     <!-- Tournaments Header -->
     <div class="flex items-center justify-between">

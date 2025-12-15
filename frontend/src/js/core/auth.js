@@ -442,3 +442,57 @@ export async function removeRole(userId, roleId) {
     }
 }
 
+/**
+ * Get dashboard statistics (Admin only)
+ * @returns {Promise<Object>} Dashboard stats (tournament_count, active_sessions)
+ */
+export async function getDashboardStats() {
+    try {
+        const response = await authenticatedFetch(`${ADMIN_API_URL}?action=dashboard-stats`, {
+            method: 'GET'
+        });
+        
+        const data = await response.json();
+        return data.success ? data.stats : null;
+    } catch (error) {
+        console.error('Get dashboard stats error:', error);
+        return null;
+    }
+}
+
+/**
+ * Get active sessions (Admin only)
+ * @returns {Promise<Array>} Array of active sessions
+ */
+export async function getActiveSessions() {
+    try {
+        const response = await authenticatedFetch(`${ADMIN_API_URL}?action=active-sessions`, {
+            method: 'GET'
+        });
+        
+        const data = await response.json();
+        return data.success ? data.sessions : [];
+    } catch (error) {
+        console.error('Get active sessions error:', error);
+        return [];
+    }
+}
+
+/**
+ * Get activity log (Admin only)
+ * @returns {Promise<Array>} Array of activity log entries
+ */
+export async function getActivityLog() {
+    try {
+        const response = await authenticatedFetch(`${ADMIN_API_URL}?action=activity-log`, {
+            method: 'GET'
+        });
+        
+        const data = await response.json();
+        return data.success ? data.activities : [];
+    } catch (error) {
+        console.error('Get activity log error:', error);
+        return [];
+    }
+}
+

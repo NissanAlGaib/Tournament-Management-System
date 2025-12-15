@@ -62,7 +62,6 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
                     </nav>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div id="user-role-badges" class="flex items-center space-x-2"></div>
                     <a href="<?php echo getPagePath('home/index.php'); ?>" class="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>

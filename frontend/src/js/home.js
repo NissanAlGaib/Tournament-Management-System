@@ -53,6 +53,11 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("sidebar-logout-btn")
     ?.addEventListener("click", handleLogout);
 
+  // Set up profile menu button in top nav
+  document
+    .getElementById("profile-menu-btn")
+    ?.addEventListener("click", () => loadSection("profile"));
+
   // Set up notification bell
   setupNotificationCenter();
 
@@ -62,6 +67,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Load dashboard by default
   loadSection("dashboard");
 });
+
+// Expose loadSection globally for use in dynamically loaded content and notifications
+window.loadSection = loadSection;
 
 // Load section dynamically using AJAX
 function loadSection(sectionName) {
@@ -101,7 +109,11 @@ function loadSection(sectionName) {
 
   const sectionPath = `${sectionName}.php`;
 
-  fetch(sectionPath)
+  fetch(sectionPath, {
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+    },
+  })
     .then((response) => {
       if (!response.ok) {
         throw new Error("Section not found");
@@ -219,10 +231,159 @@ function setupDashboard() {
   if (usernameEl && user) {
     usernameEl.textContent = user.username;
   }
+
+  // Fetch and display dashboard stats
+  fetchDashboardStats();
+  fetchRecentActivity();
+}
+
+/**
+ * Fetch dashboard statistics from backend
+ */
+async function fetchDashboardStats() {
+  try {
+    const token = Auth.getToken();
+    const response = await fetch(
+      "/GitHub%20Repos/Tournament-Management-System/backend/api/player_stats_api.php?action=stats",
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Dashboard Stats API Error:", errorData);
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    if (data.success && data.stats) {
+      displayDashboardStats(data.stats);
+    }
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+  }
+}
+
+/**
+ * Display dashboard statistics
+ */
+function displayDashboardStats(stats) {
+  const totalTournamentsEl = document.getElementById("stat-total-tournaments");
+  const activeTournamentsEl = document.getElementById(
+    "stat-active-tournaments"
+  );
+  const championshipsEl = document.getElementById("stat-championships");
+
+  if (totalTournamentsEl)
+    totalTournamentsEl.textContent = stats.total_tournaments || 0;
+  if (activeTournamentsEl)
+    activeTournamentsEl.textContent = stats.active_tournaments || 0;
+  if (championshipsEl) championshipsEl.textContent = stats.championships || 0;
+}
+
+/**
+ * Fetch recent activity from backend
+ */
+async function fetchRecentActivity() {
+  try {
+    const token = Auth.getToken();
+    const response = await fetch(
+      "/GitHub%20Repos/Tournament-Management-System/backend/api/player_stats_api.php?action=recent_activity&limit=10",
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Recent Activity API Error:", errorData);
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    if (data.success && data.activities) {
+      displayRecentActivity(data.activities);
+    }
+  } catch (error) {
+    console.error("Error fetching recent activity:", error);
+  }
+}
+
+/**
+ * Display recent activity
+ */
+function displayRecentActivity(activities) {
+  const container = document.getElementById("recent-activity-container");
+  if (!container) return;
+
+  if (activities.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-8">
+        <p class="text-gray-400">No recent activity</p>
+        <p class="text-sm text-gray-500 mt-2">Join a tournament to get started!</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = activities
+    .map((activity) => {
+      const iconData = getActivityIcon(activity.type);
+      const timeAgo = getTimeAgo(activity.date);
+
+      return `
+      <div class="flex items-start space-x-4 p-4 bg-gray-900 rounded-xl border border-gray-700 hover:border-cyan-500/50 transition-colors">
+        <div class="flex-shrink-0 p-2 bg-${iconData.color}-500/20 rounded-lg">
+          ${iconData.icon}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-white font-medium">${activity.message}</p>
+          <p class="text-sm text-gray-400 mt-1">${timeAgo}</p>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+/**
+ * Get icon for activity type
+ */
+function getActivityIcon(type) {
+  const icons = {
+    championship: {
+      color: "cyan",
+      icon: '<svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+    },
+    win: {
+      color: "green",
+      icon: '<svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+    },
+    registration: {
+      color: "purple",
+      icon: '<svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>',
+    },
+  };
+  return icons[type] || icons.registration;
 }
 
 // Setup profile functionality
-function setupProfile() {
+async function setupProfile() {
   const user = Auth.getCurrentUser();
 
   // Fill in user information
@@ -236,9 +397,60 @@ function setupProfile() {
     emailEl.textContent = user.email;
   }
 
+  // Fetch profile data directly without loading external script
+  try {
+    const token = Auth.getToken();
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+
+    // Fetch stats
+    const statsResponse = await fetch(
+      "/GitHub%20Repos/Tournament-Management-System/backend/api/player_stats_api.php?action=stats",
+      { method: "GET", credentials: "include", headers }
+    );
+
+    if (statsResponse.ok) {
+      const statsData = await statsResponse.json();
+      if (statsData.success && statsData.stats) {
+        displayProfileStats(statsData.stats);
+      }
+    }
+
+    // Fetch match history
+    const matchResponse = await fetch(
+      "/GitHub%20Repos/Tournament-Management-System/backend/api/player_stats_api.php?action=match_history&limit=10",
+      { method: "GET", credentials: "include", headers }
+    );
+
+    if (matchResponse.ok) {
+      const matchData = await matchResponse.json();
+      if (matchData.success && matchData.matches) {
+        displayProfileMatchHistory(matchData.matches);
+      }
+    }
+
+    // Fetch achievements
+    const achieveResponse = await fetch(
+      "/GitHub%20Repos/Tournament-Management-System/backend/api/player_stats_api.php?action=achievements",
+      { method: "GET", credentials: "include", headers }
+    );
+
+    if (achieveResponse.ok) {
+      const achieveData = await achieveResponse.json();
+      if (achieveData.success && achieveData.achievements) {
+        displayProfileAchievements(achieveData.achievements);
+      }
+    }
+  } catch (error) {
+    console.error("Error loading profile data:", error);
+  }
+
   // Setup logout button in profile
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
+    logoutBtn.removeEventListener("click", handleLogout);
     logoutBtn.addEventListener("click", handleLogout);
   }
 
@@ -416,6 +628,68 @@ window.joinTournament = async function (
     alert("Error joining tournament. Please try again.");
   }
 };
+
+// Profile data display functions
+function displayProfileStats(stats) {
+  console.log("Profile stats:", stats);
+}
+
+function displayProfileMatchHistory(matches) {
+  const container = document.getElementById("match-history-container");
+  if (!container || !matches || matches.length === 0) return;
+
+  container.innerHTML = matches
+    .map(
+      (match) => `
+    <div class="flex items-start space-x-4 p-4 bg-gray-900 rounded-xl border border-gray-700">
+      <div class="flex-shrink-0 p-2 ${
+        match.result === "win" ? "bg-green-500/20" : "bg-red-500/20"
+      } rounded-lg">
+        <svg class="w-6 h-6 ${
+          match.result === "win" ? "text-green-400" : "text-red-400"
+        }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${
+            match.result === "win" ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"
+          }"></path>
+        </svg>
+      </div>
+      <div class="flex-1">
+        <p class="text-white font-medium">${
+          match.result === "win" ? "Victory" : "Defeat"
+        } vs ${match.opponent}</p>
+        <p class="text-sm text-gray-400 mt-1">${match.tournament_name}</p>
+      </div>
+      <span class="text-lg font-bold ${
+        match.result === "win" ? "text-green-400" : "text-red-400"
+      }">${match.result.toUpperCase()}</span>
+    </div>
+  `
+    )
+    .join("");
+}
+
+function displayProfileAchievements(achievements) {
+  const container = document.getElementById("achievements-container");
+  if (!container || !achievements || achievements.length === 0) return;
+
+  container.innerHTML = achievements
+    .map(
+      (achievement) => `
+    <div class="flex items-center space-x-4 p-4 bg-gray-900 rounded-xl border border-gray-700">
+      <div class="p-3 bg-yellow-500/20 rounded-xl">
+        <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+        </svg>
+      </div>
+      <div>
+        <p class="text-white font-semibold">${achievement.title}</p>
+        <p class="text-sm text-gray-400">${achievement.description}</p>
+      </div>
+    </div>
+  `
+    )
+    .join("");
+}
 
 // Setup tournaments section
 function setupTournaments() {
@@ -1213,6 +1487,10 @@ function setupTeamManagement() {
 }
 
 // ===== Notification Center =====
+// Track if notification center is already set up
+let notificationCenterInitialized = false;
+let notificationRefreshInterval = null;
+
 function setupNotificationCenter() {
   const bellBtn = document.getElementById("notification-bell-btn");
   const dropdown = document.getElementById("notification-dropdown");
@@ -1220,11 +1498,20 @@ function setupNotificationCenter() {
 
   if (!bellBtn || !dropdown) return;
 
+  // Prevent duplicate initialization
+  if (notificationCenterInitialized) {
+    return;
+  }
+  notificationCenterInitialized = true;
+
   // Load notifications initially
   loadNotificationCenter();
 
-  // Refresh notifications every 30 seconds
-  setInterval(loadNotificationCenter, 30000);
+  // Clear any existing interval and set new one
+  if (notificationRefreshInterval) {
+    clearInterval(notificationRefreshInterval);
+  }
+  notificationRefreshInterval = setInterval(loadNotificationCenter, 30000);
 
   // Toggle dropdown
   bellBtn.addEventListener("click", (e) => {
@@ -1288,7 +1575,9 @@ function updateNotificationBadge(notifications) {
   const badge = document.getElementById("notification-badge");
   if (!badge) return;
 
-  const unreadCount = notifications.filter((n) => n.is_read === "0").length;
+  const unreadCount = notifications.filter(
+    (n) => n.is_read == 0 || n.is_read === "0"
+  ).length;
 
   if (unreadCount > 0) {
     badge.textContent = unreadCount > 99 ? "99+" : unreadCount;
@@ -1316,18 +1605,22 @@ function renderNotifications(notifications) {
 
   container.innerHTML = notifications
     .map((notification) => {
-      const isUnread = notification.is_read === "0";
+      const isUnread =
+        notification.is_read == 0 || notification.is_read === "0";
       const date = new Date(notification.created_at);
       const timeAgo = getTimeAgo(date);
+      const notificationType = notification.type || "general";
+      const relatedId =
+        notification.related_id || notification.tournament_id || "null";
 
       return `
       <div class="notification-item p-4 border-b border-gray-700 hover:bg-gray-750 cursor-pointer ${
         isUnread ? "bg-gray-800" : ""
       }" 
            data-notification-id="${notification.id}"
-           onclick="window.handleNotificationClick(${notification.id}, '${
-        notification.type
-      }', ${notification.related_id})">
+           onclick="window.handleNotificationClick(${
+             notification.id
+           }, '${notificationType}', ${relatedId})">
         <div class="flex items-start space-x-3">
           ${
             isUnread

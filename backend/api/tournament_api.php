@@ -164,7 +164,11 @@ try {
                 // Get user notifications
                 $user = $authMiddleware->requireAuth();
 
-                $query = "SELECT tn.*, t.name as tournament_name
+                $query = "SELECT tn.id, tn.tournament_id, tn.notification_type as type, 
+                         tn.title, tn.message, tn.priority, tn.target_audience, 
+                         tn.target_user_id, tn.is_read, tn.created_at,
+                         tn.tournament_id as related_id,
+                         t.name as tournament_name
                          FROM tournament_notifications tn
                          INNER JOIN tournaments t ON tn.tournament_id = t.id
                          WHERE (tn.target_audience = 'all' OR 
@@ -614,7 +618,7 @@ try {
                                 // Register team member for tournament
                                 $memberRegQuery = "INSERT INTO tournament_participants 
                                                   (tournament_id, user_id, registration_status, payment_status)
-                                                  VALUES (:tournament_id, :user_id, 'confirmed', 'pending')";
+                                                  VALUES (:tournament_id, :user_id, 'pending', 'pending')";
                                 $memberRegStmt = $db->prepare($memberRegQuery);
                                 $memberRegStmt->bindParam(':tournament_id', $tournamentId);
                                 $memberRegStmt->bindParam(':user_id', $memberUserId);
@@ -628,14 +632,52 @@ try {
 
                     // Register participant (captain)
                     $notes = $data['notes'] ?? null;
+                    $phoneNumber = $data['phone_number'] ?? null;
+                    $experienceLevel = $data['experience_level'] ?? null;
+                    $playerRole = $data['player_role'] ?? null;
+                    $additionalInfo = $data['additional_info'] ?? null;
+                    
                     $registerQuery = "INSERT INTO tournament_participants 
-                                     (tournament_id, user_id, registration_status, payment_status, registration_notes)
-                                     VALUES (:tournament_id, :user_id, 'confirmed', 'pending', :notes)";
+                                     (tournament_id, user_id, registration_status, payment_status, registration_notes, 
+                                      phone_number, experience_level, player_role, additional_info)
+                                     VALUES (:tournament_id, :user_id, 'pending', 'pending', :notes, 
+                                             :phone_number, :experience_level, :player_role, :additional_info)";
                     $registerStmt = $db->prepare($registerQuery);
                     $registerStmt->bindParam(':tournament_id', $tournamentId);
                     $registerStmt->bindParam(':user_id', $userId);
                     $registerStmt->bindParam(':notes', $notes);
+                    $registerStmt->bindParam(':phone_number', $phoneNumber);
+                    $registerStmt->bindParam(':experience_level', $experienceLevel);
+                    $registerStmt->bindParam(':player_role', $playerRole);
+                    $registerStmt->bindParam(':additional_info', $additionalInfo);
                     $registerStmt->execute();
+
+                    // Send registration confirmation email
+                    try {
+                        if (file_exists(__DIR__ . '/../classes/EmailNotification.class.php')) {
+                            require_once __DIR__ . '/../../vendor/autoload.php';
+                            require_once __DIR__ . '/../classes/EmailNotification.class.php';
+                            $emailNotification = new EmailNotification($db);
+                            $emailNotification->sendRegistrationSubmitted(
+                                $user['email'],
+                                $user['username'],
+                                $tournament['name'],
+                                $tournamentId
+                            );
+                            
+                            // Create in-app notification
+                            $emailNotification->createInAppNotification(
+                                $tournamentId,
+                                $userId,
+                                'registration',
+                                'Registration Submitted',
+                                "Your registration for {$tournament['name']} has been submitted and is pending approval."
+                            );
+                        }
+                    } catch (Exception $e) {
+                        // Log email error but don't fail registration
+                        error_log("Failed to send registration email: " . $e->getMessage());
+                    }
 
                     $db->commit();
 
@@ -1039,6 +1081,50 @@ try {
                 $updateStmt->bindParam(':participant_id', $data['participant_id']);
                 $updateStmt->execute();
 
+                // Send approval email and notification
+                try {
+                    if (file_exists(__DIR__ . '/../classes/EmailNotification.class.php')) {
+                        require_once __DIR__ . '/../../vendor/autoload.php';
+                        require_once __DIR__ . '/../classes/EmailNotification.class.php';
+                        
+                        // Get user and tournament details
+                        $detailsQuery = "SELECT u.email, u.username, t.name as tournament_name, t.id as tournament_id, 
+                                                t.start_date
+                                        FROM tournament_participants tp
+                                        INNER JOIN users u ON tp.user_id = u.id
+                                        INNER JOIN tournaments t ON tp.tournament_id = t.id
+                                        WHERE tp.id = :participant_id";
+                        $detailsStmt = $db->prepare($detailsQuery);
+                        $detailsStmt->bindParam(':participant_id', $data['participant_id']);
+                        $detailsStmt->execute();
+                        $details = $detailsStmt->fetch(PDO::FETCH_ASSOC);
+                        
+                        if ($details) {
+                            $emailNotification = new EmailNotification($db);
+                            
+                            // Send email notification
+                            $emailNotification->sendRegistrationApproved(
+                                $details['email'],
+                                $details['username'],
+                                $details['tournament_name'],
+                                $details['tournament_id'],
+                                $details['start_date']
+                            );
+                            
+                            // Create in-app notification
+                            $emailNotification->createInAppNotification(
+                                $details['tournament_id'],
+                                $participant['user_id'],
+                                'registration',
+                                'Registration Approved',
+                                "Your registration for {$details['tournament_name']} has been approved! You are now a confirmed participant."
+                            );
+                        }
+                    }
+                } catch (Exception $e) {
+                    error_log("Failed to send approval notification: " . $e->getMessage());
+                }
+
                 echo json_encode([
                     "success" => true,
                     "message" => "Participant approved successfully"
@@ -1071,6 +1157,9 @@ try {
                     throw new Exception('You do not have permission to manage this tournament');
                 }
 
+                // Get rejection reason if provided
+                $reason = $data['reason'] ?? null;
+                
                 // Update participant status to rejected
                 $updateQuery = "UPDATE tournament_participants 
                                SET registration_status = 'rejected'
@@ -1078,6 +1167,53 @@ try {
                 $updateStmt = $db->prepare($updateQuery);
                 $updateStmt->bindParam(':participant_id', $data['participant_id']);
                 $updateStmt->execute();
+
+                // Send rejection email and notification
+                try {
+                    if (file_exists(__DIR__ . '/../classes/EmailNotification.class.php')) {
+                        require_once __DIR__ . '/../../vendor/autoload.php';
+                        require_once __DIR__ . '/../classes/EmailNotification.class.php';
+                        
+                        // Get user and tournament details
+                        $detailsQuery = "SELECT u.email, u.username, t.name as tournament_name, t.id as tournament_id
+                                        FROM tournament_participants tp
+                                        INNER JOIN users u ON tp.user_id = u.id
+                                        INNER JOIN tournaments t ON tp.tournament_id = t.id
+                                        WHERE tp.id = :participant_id";
+                        $detailsStmt = $db->prepare($detailsQuery);
+                        $detailsStmt->bindParam(':participant_id', $data['participant_id']);
+                        $detailsStmt->execute();
+                        $details = $detailsStmt->fetch(PDO::FETCH_ASSOC);
+                        
+                        if ($details) {
+                            $emailNotification = new EmailNotification($db);
+                            
+                            // Send email notification
+                            $emailNotification->sendRegistrationRejected(
+                                $details['email'],
+                                $details['username'],
+                                $details['tournament_name'],
+                                $reason
+                            );
+                            
+                            // Create in-app notification
+                            $notificationMessage = "Your registration for {$details['tournament_name']} was not approved.";
+                            if ($reason) {
+                                $notificationMessage .= " Reason: " . $reason;
+                            }
+                            
+                            $emailNotification->createInAppNotification(
+                                $details['tournament_id'],
+                                $participant['user_id'],
+                                'registration',
+                                'Registration Not Approved',
+                                $notificationMessage
+                            );
+                        }
+                    }
+                } catch (Exception $e) {
+                    error_log("Failed to send rejection notification: " . $e->getMessage());
+                }
 
                 echo json_encode([
                     "success" => true,
