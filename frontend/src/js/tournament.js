@@ -4,7 +4,8 @@
  */
 
 const TournamentAPI = {
-  baseURL: "/backend/api/tournament_api.php",
+  baseURL:
+    "/GitHub%20Repos/Tournament-Management-System/backend/api/tournament_api.php",
 
   /**
    * Get auth token from localStorage
@@ -23,7 +24,16 @@ const TournamentAPI = {
         url += `&status=${status}`;
       }
 
-      const response = await fetch(url);
+      const token = this.getToken();
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(url, {
+        credentials: "include",
+        headers: headers,
+      });
       const data = await response.json();
       return data;
     } catch (error) {
@@ -37,8 +47,18 @@ const TournamentAPI = {
    */
   async getTournament(id) {
     try {
+      const token = this.getToken();
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(
-        `${this.baseURL}?action=tournament&id=${id}`
+        `${this.baseURL}?action=tournament&id=${id}`,
+        {
+          credentials: "include",
+          headers: headers,
+        }
       );
       const data = await response.json();
       return data;
@@ -394,7 +414,9 @@ const TournamentUI = {
     }`;
 
     return `
-            <div class="relative group cursor-pointer" onclick="TournamentUI.navigateToDetails(${tournament.id})">
+            <div class="relative group cursor-pointer" onclick="TournamentUI.navigateToDetails(${
+              tournament.id
+            })">
                 <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl opacity-50 group-hover:opacity-75 blur transition duration-300"></div>
                 <div class="relative bg-gray-800 rounded-2xl border border-cyan-500/30 overflow-hidden hover:border-cyan-400/50 transition-all">
                     <div class="relative h-40 bg-gradient-to-br from-cyan-600 via-purple-600 to-cyan-700 flex items-center justify-center">
@@ -495,10 +517,10 @@ const TournamentUI = {
    */
   navigateToDetails(tournamentId) {
     // Check if we're in the AJAX navigation context (home.js)
-    if (typeof window.navigateTo === 'function') {
+    if (typeof window.navigateTo === "function") {
       // Use the AJAX navigation system
       window.currentTournamentId = tournamentId;
-      window.navigateTo('tournament-details.php');
+      window.navigateTo("tournament-details.php");
     } else {
       // Fallback to direct navigation
       window.location.href = `tournament-details.php?id=${tournamentId}`;

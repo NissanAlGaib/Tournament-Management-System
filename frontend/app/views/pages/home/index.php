@@ -152,6 +152,7 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
     <!-- Include Create Tournament Modal -->
     <?php require_once __DIR__ . '/../../components/create-tournament-modal.php'; ?>
 
+    <script src="<?php echo getAssetPath('js/tournament.js'); ?>"></script>
     <script type="module" src="<?php echo getAssetPath('js/home.js'); ?>"></script>
 </body>
 

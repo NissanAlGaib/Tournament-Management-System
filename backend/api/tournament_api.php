@@ -309,7 +309,7 @@ try {
                 $tournamentId = $_GET['tournament_id'];
 
                 // Verify ownership or admin
-                $checkQuery = "SELECT organizer_id, format, tournament_size, is_team_based FROM tournaments WHERE id = :id";
+                $checkQuery = "SELECT organizer_id, format, tournament_size, is_team_based, status, winner_name, winner_team_name FROM tournaments WHERE id = :id";
                 $checkStmt = $db->prepare($checkQuery);
                 $checkStmt->bindParam(':id', $tournamentId);
                 $checkStmt->execute();
@@ -1422,6 +1422,105 @@ try {
                     echo json_encode([
                         "success" => true,
                         "message" => "Match reset successfully"
+                    ]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
+            } elseif ($action === 'set-tournament-winner') {
+                // Set tournament winner and complete the tournament
+                $user = $authMiddleware->requireRole(['Organizer', 'Admin']);
+
+                if (!isset($data['tournament_id']) || !isset($data['match_id']) || !isset($data['winner_id'])) {
+                    throw new Exception('Tournament ID, match ID, and winner ID are required');
+                }
+
+                // Get tournament info
+                $checkQuery = "SELECT t.*, tt.team_name as winner_team_name
+                              FROM tournaments t
+                              LEFT JOIN tournament_teams tt ON :winner_id = tt.id
+                              WHERE t.id = :tournament_id";
+                $checkStmt = $db->prepare($checkQuery);
+                $checkStmt->bindParam(':tournament_id', $data['tournament_id']);
+                $checkStmt->bindParam(':winner_id', $data['winner_id']);
+                $checkStmt->execute();
+                $tournament = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tournament) {
+                    throw new Exception('Tournament not found');
+                }
+
+                // Verify ownership or admin
+                $roles = array_column($user['roles'], 'role_name');
+                if ($tournament['organizer_id'] != $user['user_id'] && !in_array('Admin', $roles)) {
+                    throw new Exception('You do not have permission to manage this tournament');
+                }
+
+                $db->beginTransaction();
+
+                try {
+                    // First, set the finals match winner
+                    $updateMatchQuery = "UPDATE matches 
+                                        SET winner_id = :winner_id, 
+                                            match_status = 'completed',
+                                            end_time = NOW()
+                                        WHERE id = :match_id";
+                    $updateMatchStmt = $db->prepare($updateMatchQuery);
+                    $updateMatchStmt->bindParam(':winner_id', $data['winner_id']);
+                    $updateMatchStmt->bindParam(':match_id', $data['match_id']);
+                    $updateMatchStmt->execute();
+
+                    // Get winner details based on tournament type
+                    if ($tournament['is_team_based']) {
+                        // For team tournaments, get team info
+                        $winnerQuery = "SELECT id, team_name as name FROM tournament_teams WHERE id = :winner_id";
+                    } else {
+                        // For individual tournaments, get user info from participant
+                        $winnerQuery = "SELECT tp.id, u.id as user_id, u.username as name 
+                                       FROM tournament_participants tp 
+                                       JOIN users u ON tp.user_id = u.id 
+                                       WHERE tp.id = :winner_id";
+                    }
+                    $winnerStmt = $db->prepare($winnerQuery);
+                    $winnerStmt->bindParam(':winner_id', $data['winner_id']);
+                    $winnerStmt->execute();
+                    $winner = $winnerStmt->fetch(PDO::FETCH_ASSOC);
+
+                    // Update tournament status to completed and set winner
+                    if ($tournament['is_team_based']) {
+                        $updateTournamentQuery = "UPDATE tournaments 
+                                                 SET status = 'completed', 
+                                                     completed_at = NOW(),
+                                                     winner_team_id = :winner_id,
+                                                     winner_team_name = :winner_name
+                                                 WHERE id = :tournament_id";
+                    } else {
+                        $updateTournamentQuery = "UPDATE tournaments 
+                                                 SET status = 'completed', 
+                                                     completed_at = NOW(),
+                                                     winner_user_id = :winner_user_id,
+                                                     winner_name = :winner_name
+                                                 WHERE id = :tournament_id";
+                    }
+
+                    $updateTournamentStmt = $db->prepare($updateTournamentQuery);
+                    $updateTournamentStmt->bindParam(':tournament_id', $data['tournament_id']);
+
+                    if ($tournament['is_team_based']) {
+                        $updateTournamentStmt->bindParam(':winner_id', $data['winner_id']);
+                        $updateTournamentStmt->bindParam(':winner_name', $winner['name']);
+                    } else {
+                        $updateTournamentStmt->bindParam(':winner_user_id', $winner['user_id']);
+                        $updateTournamentStmt->bindParam(':winner_name', $winner['name']);
+                    }
+
+                    $updateTournamentStmt->execute();
+
+                    $db->commit();
+
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "Tournament completed! Champion: " . $winner['name']
                     ]);
                 } catch (Exception $e) {
                     $db->rollBack();

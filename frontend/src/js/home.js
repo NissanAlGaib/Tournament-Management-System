@@ -112,6 +112,22 @@ function loadSection(sectionName) {
       homeContent.innerHTML = html;
       currentSection = sectionName;
 
+      // Execute any script tags in the loaded HTML
+      const scripts = homeContent.querySelectorAll("script");
+      scripts.forEach((oldScript) => {
+        const newScript = document.createElement("script");
+        if (oldScript.src) {
+          newScript.src = oldScript.src;
+        } else {
+          newScript.textContent = oldScript.textContent;
+        }
+        // Copy all attributes
+        Array.from(oldScript.attributes).forEach((attr) => {
+          newScript.setAttribute(attr.name, attr.value);
+        });
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+
       // Update active nav button
       updateActiveNav(sectionName);
 
@@ -340,153 +356,74 @@ async function handleLogout() {
   window.location.href = getViewPath("layout.php");
 }
 
+// Global function to join a tournament
+window.joinTournament = async function (
+  tournamentId,
+  tournamentName,
+  isTeamBased
+) {
+  if (!confirm(`Do you want to join "${tournamentName}"?`)) {
+    return;
+  }
+
+  // If team-based, prompt for team selection/creation
+  if (isTeamBased == 1 || isTeamBased === true) {
+    // TODO: Show team selection modal
+    alert(
+      "This is a team-based tournament. Team selection will be implemented."
+    );
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("auth_token");
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    if (typeof window.TournamentAPI === "undefined") {
+      window.TournamentAPI = {
+        baseURL:
+          "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+      };
+    }
+
+    const response = await fetch(window.TournamentAPI.baseURL, {
+      method: "POST",
+      headers: headers,
+      credentials: "include",
+      body: JSON.stringify({
+        action: "register",
+        tournament_id: tournamentId,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert("Successfully registered for tournament!");
+      // Reload the tournaments section to update the UI
+      loadSection("tournaments");
+    } else {
+      alert("Error: " + (data.message || "Failed to register for tournament"));
+    }
+  } catch (error) {
+    console.error("Error joining tournament:", error);
+    alert("Error joining tournament. Please try again.");
+  }
+};
+
 // Setup tournaments section
 function setupTournaments() {
   console.log("Setting up tournaments section...");
-
-  // Load tournament.js dynamically if not already loaded
+  // The tournaments.php file has its own initialization with TournamentUI
+  // Just ensure TournamentAPI is available
   if (typeof window.TournamentAPI === "undefined") {
-    const script = document.createElement("script");
-    script.src =
-      "/GitHub Repos/Tournament-Management-System/frontend/src/js/tournament.js";
-    script.onload = function () {
-      console.log("Tournament.js loaded");
-      initTournamentPage();
-    };
-    script.onerror = function () {
-      console.error("Failed to load tournament.js");
-    };
-    document.head.appendChild(script);
-  } else {
-    initTournamentPage();
-  }
-
-  function initTournamentPage() {
-    if (
-      typeof window.TournamentAPI === "undefined" ||
-      typeof window.TournamentUI === "undefined"
-    ) {
-      console.error("TournamentAPI or TournamentUI not available");
-      return;
-    }
-
-    console.log("Initializing tournament page...");
-
-    // Set API base URL
-    window.TournamentAPI.baseURL =
-      "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php";
-    console.log("API URL set to:", window.TournamentAPI.baseURL);
-
-    // Load tournaments
-    loadTournaments();
-    setupFilterButtons();
-    setupCreateButton();
-
-    function setupFilterButtons() {
-      document.querySelectorAll(".filter-tab").forEach((button) => {
-        button.addEventListener("click", function () {
-          document.querySelectorAll(".filter-tab").forEach((btn) => {
-            btn.classList.remove(
-              "active",
-              "bg-gradient-to-r",
-              "from-cyan-500",
-              "to-purple-600",
-              "text-white",
-              "shadow-lg",
-              "shadow-cyan-500/30"
-            );
-            btn.classList.add("bg-gray-800", "text-gray-400");
-          });
-
-          this.classList.remove("bg-gray-800", "text-gray-400");
-          this.classList.add(
-            "active",
-            "bg-gradient-to-r",
-            "from-cyan-500",
-            "to-purple-600",
-            "text-white",
-            "shadow-lg",
-            "shadow-cyan-500/30"
-          );
-
-          const status = this.dataset.status;
-          loadTournaments(status);
-        });
-      });
-    }
-
-    function setupCreateButton() {
-      const createBtn = document.getElementById("createTournamentBtn");
-      if (!createBtn) {
-        console.log("Create tournament button not found");
-        return;
-      }
-
-      console.log("Checking user roles for create button...");
-      console.log("isOrganizer:", Auth.isOrganizer());
-      console.log("isAdmin:", Auth.isAdmin());
-
-      // Show button only for Organizers and Admins
-      if (Auth.isOrganizer() || Auth.isAdmin()) {
-        console.log("User has permission - showing Create Tournament button");
-        createBtn.classList.remove("hidden");
-        createBtn.addEventListener("click", function () {
-          // Open the create tournament modal
-          if (typeof window.openCreateTournamentModal === "function") {
-            window.openCreateTournamentModal();
-          } else {
-            console.error("Create tournament modal function not found");
-          }
-        });
-      } else {
-        console.log("User does not have Organizer or Admin role");
-      }
-    }
-
-    async function loadTournaments(status = null) {
-      const loadingState = document.getElementById("loadingState");
-      const tournamentsGrid = document.getElementById("tournamentsGrid");
-      const emptyState = document.getElementById("emptyState");
-
-      if (!loadingState || !tournamentsGrid || !emptyState) {
-        console.error("Tournament page elements not found");
-        return;
-      }
-
-      loadingState.classList.remove("hidden");
-      tournamentsGrid.classList.add("hidden");
-      emptyState.classList.add("hidden");
-
-      try {
-        console.log("Fetching tournaments with status:", status);
-        const result = await window.TournamentAPI.getTournaments(status);
-        console.log("API response:", result);
-
-        if (
-          result.success &&
-          result.tournaments &&
-          result.tournaments.length > 0
-        ) {
-          console.log("Rendering", result.tournaments.length, "tournaments");
-          tournamentsGrid.innerHTML = result.tournaments
-            .map((tournament) =>
-              window.TournamentUI.renderTournamentCard(tournament)
-            )
-            .join("");
-
-          loadingState.classList.add("hidden");
-          tournamentsGrid.classList.remove("hidden");
-        } else {
-          console.log("No tournaments found");
-          loadingState.classList.add("hidden");
-          emptyState.classList.remove("hidden");
-        }
-      } catch (error) {
-        console.error("Error loading tournaments:", error);
-        loadingState.classList.add("hidden");
-        emptyState.classList.remove("hidden");
-      }
-    }
+    console.log("TournamentAPI not loaded yet");
   }
 }
 
@@ -2210,8 +2147,59 @@ function setupTournamentBracket() {
       html += "</div>";
     }
 
+    // Add champion podium
+    const tournamentWinner =
+      currentTournament?.winner_name ||
+      currentTournament?.winner_team_name ||
+      null;
+    const isCompleted = currentTournament?.status === "completed";
+
+    console.log("Champion podium debug:", {
+      currentTournament,
+      tournamentWinner,
+      isCompleted,
+      maxRound,
+    });
+
+    html += `
+      <div class="bracket-round">
+        <h3 class="text-lg font-bold text-yellow-400 mb-4 text-center">🏆 Champion</h3>
+        <div class="champion-podium ${
+          tournamentWinner ? "has-champion" : "empty drop-target"
+        }" 
+             data-round="${maxRound + 1}"
+             data-match-id="final">
+          <div class="champion-slot">
+            ${
+              tournamentWinner
+                ? `
+              <div class="text-2xl font-bold text-yellow-400 mb-2">👑</div>
+              <div class="text-xl font-bold text-white">${escapeHtml(
+                tournamentWinner
+              )}</div>
+              ${
+                isCompleted
+                  ? '<div class="text-sm text-green-400 mt-2">Tournament Completed</div>'
+                  : ""
+              }
+            `
+                : `
+              <div class="text-gray-400 text-center">Drag winner here</div>
+            `
+            }
+          </div>
+        </div>
+      </div>
+    `;
+
     html += "</div>";
     container.innerHTML = html;
+
+    console.log("Bracket HTML rendered, checking for champion podium...");
+    setTimeout(() => {
+      const podium = document.querySelector(".champion-podium");
+      console.log("Champion podium element:", podium);
+    }, 100);
 
     // Setup drag and drop
     setupDragAndDrop();
@@ -2279,7 +2267,7 @@ function setupTournamentBracket() {
       '.bracket-participant[draggable="true"]'
     );
     const dropTargets = document.querySelectorAll(
-      ".bracket-participant.drop-target"
+      ".bracket-participant.drop-target, .champion-podium.drop-target"
     );
 
     draggables.forEach((participant) => {
@@ -2318,22 +2306,39 @@ function setupTournamentBracket() {
       e.preventDefault();
     }
 
-    // Allow drop only on empty slots in the next round
+    const target = e.target.closest(".bracket-participant, .champion-podium");
+
+    if (!target || !draggedParticipant) {
+      return false;
+    }
+
+    // Allow drop on empty bracket slots in the next round
     if (
-      draggedParticipant &&
-      e.target.classList.contains("bracket-participant") &&
-      e.target.classList.contains("empty")
+      target.classList.contains("bracket-participant") &&
+      target.classList.contains("empty")
     ) {
-      const targetRound = parseInt(e.target.dataset.round);
+      const targetRound = parseInt(target.dataset.round);
 
       // Only allow dropping into the next round
       if (targetRound === draggedParticipant.roundNumber + 1) {
-        e.target.classList.add("drop-zone");
+        target.classList.add("drop-zone");
         e.dataTransfer.dropEffect = "move";
       }
     }
 
-    return false;
+    // Allow drop on champion podium from finals (last round)
+    if (
+      target.classList.contains("champion-podium") &&
+      target.classList.contains("empty")
+    ) {
+      const targetRound = parseInt(target.dataset.round);
+
+      // Only finals winner can be dragged to champion podium
+      if (targetRound === draggedParticipant.roundNumber + 1) {
+        target.classList.add("drop-zone");
+        e.dataTransfer.dropEffect = "move";
+      }
+    }
   }
 
   function handleDragLeave(e) {
@@ -2350,19 +2355,31 @@ function setupTournamentBracket() {
       e.preventDefault();
     }
 
-    e.target.classList.remove("drop-zone");
+    const target = e.target.closest(".bracket-participant, .champion-podium");
+    if (target) {
+      target.classList.remove("drop-zone");
+    }
 
-    if (!draggedParticipant) return false;
+    if (!draggedParticipant || !target) return false;
 
-    const targetRound = parseInt(e.target.dataset.round);
+    const targetRound = parseInt(target.dataset.round);
 
     // Validate it's the next round
     if (targetRound === draggedParticipant.roundNumber + 1) {
-      // Set this participant as the winner of their current match
-      await setMatchWinner(
-        draggedParticipant.matchId,
-        draggedParticipant.participantId
-      );
+      // Check if this is the champion podium
+      if (target.classList.contains("champion-podium")) {
+        // Set tournament winner and complete tournament
+        await setTournamentWinner(
+          draggedParticipant.matchId,
+          draggedParticipant.participantId
+        );
+      } else {
+        // Set this participant as the winner of their current match
+        await setMatchWinner(
+          draggedParticipant.matchId,
+          draggedParticipant.participantId
+        );
+      }
     }
 
     return false;
@@ -2396,6 +2413,42 @@ function setupTournamentBracket() {
       }
     } catch (error) {
       console.error("Error setting winner:", error);
+      showNotification(error.message, "error");
+    }
+  }
+
+  async function setTournamentWinner(matchId, winnerId) {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(
+        "/GitHub Repos/Tournament-Management-System/backend/api/tournament_api.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "set-tournament-winner",
+            tournament_id: currentBracketTournamentId,
+            match_id: matchId,
+            winner_id: winnerId,
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification(
+          "🏆 Tournament completed! Champion declared!",
+          "success"
+        );
+        loadBracket();
+      } else {
+        throw new Error(data.message || "Failed to set tournament winner");
+      }
+    } catch (error) {
+      console.error("Error setting tournament winner:", error);
       showNotification(error.message, "error");
     }
   }

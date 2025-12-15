@@ -38,7 +38,7 @@
     <!-- Bracket Container -->
     <div id="bracketContainer" class="hidden">
         <div class="bg-gray-800/50 rounded-xl p-6 overflow-x-auto">
-            <div id="bracketView" class="min-w-full">
+            <div id="bracketView" class="inline-flex">
                 <!-- Bracket will be rendered here -->
             </div>
         </div>
@@ -56,85 +56,133 @@
 </div>
 
 <style>
-.bracket-round {
-    display: inline-block;
-    vertical-align: top;
-    margin-right: 40px;
-}
+    .bracket-round {
+        display: inline-block;
+        vertical-align: top;
+        margin-right: 40px;
+    }
 
-.bracket-match {
-    background: #1f2937;
-    border: 2px solid #374151;
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 20px;
-    min-width: 250px;
-    position: relative;
-}
+    .bracket-match {
+        background: #1f2937;
+        border: 2px solid #374151;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 20px;
+        min-width: 250px;
+        position: relative;
+    }
 
-.bracket-match.completed {
-    border-color: #10b981;
-}
+    .bracket-match.completed {
+        border-color: #10b981;
+    }
 
-.bracket-match.bye {
-    opacity: 0.5;
-}
+    .bracket-match.bye {
+        opacity: 0.5;
+    }
 
-.bracket-participant {
-    background: #374151;
-    padding: 10px 12px;
-    border-radius: 8px;
-    margin: 4px 0;
-    cursor: grab;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-}
+    .bracket-participant {
+        background: #374151;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin: 4px 0;
+        cursor: grab;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
 
-.bracket-participant:hover {
-    background: #4b5563;
-    border-color: #06b6d4;
-}
+    .bracket-participant:hover {
+        background: #4b5563;
+        border-color: #06b6d4;
+    }
 
-.bracket-participant.dragging {
-    opacity: 0.5;
-    cursor: grabbing;
-}
+    .bracket-participant.dragging {
+        opacity: 0.5;
+        cursor: grabbing;
+    }
 
-.bracket-participant.winner {
-    background: #065f46;
-    border-color: #10b981;
-}
+    .bracket-participant.winner {
+        background: #065f46;
+        border-color: #10b981;
+    }
 
-.bracket-participant.empty {
-    background: #1f2937;
-    border: 2px dashed #4b5563;
-    color: #6b7280;
-    font-style: italic;
-    cursor: default;
-}
+    .bracket-participant.empty {
+        background: #1f2937;
+        border: 2px dashed #4b5563;
+        color: #6b7280;
+        font-style: italic;
+        cursor: default;
+    }
 
-.bracket-participant.drop-zone {
-    border-color: #06b6d4;
-    background: #164e63;
-}
+    .bracket-participant.drop-zone {
+        border-color: #06b6d4;
+        background: #164e63;
+    }
 
-.match-round-label {
-    position: absolute;
-    top: -8px;
-    left: 12px;
-    background: #1f2937;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    color: #9ca3af;
-    font-weight: 600;
-}
+    .match-round-label {
+        position: absolute;
+        top: -8px;
+        left: 12px;
+        background: #1f2937;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        color: #9ca3af;
+        font-weight: 600;
+    }
 
-.vs-divider {
-    text-align: center;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: bold;
-    margin: 4px 0;
-}
+    .vs-divider {
+        text-align: center;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: bold;
+        margin: 4px 0;
+    }
+
+    .champion-podium {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        border: 3px solid #fbbf24;
+        border-radius: 16px;
+        padding: 40px 20px;
+        min-width: 250px;
+        text-align: center;
+        position: relative;
+        box-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
+    }
+
+    .champion-podium.empty {
+        background: #1f2937;
+        border: 3px dashed #6b7280;
+    }
+
+    .champion-podium.drop-zone {
+        border-color: #fbbf24;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        box-shadow: 0 0 50px rgba(251, 191, 36, 0.5);
+        transform: scale(1.05);
+        transition: all 0.3s;
+    }
+
+    .champion-podium.has-champion {
+        animation: champion-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes champion-glow {
+
+        0%,
+        100% {
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 50px rgba(251, 191, 36, 0.6);
+        }
+    }
+
+    .champion-slot {
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
 </style>

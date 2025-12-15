@@ -118,8 +118,8 @@ require_once __DIR__ . '/../../../includes/header.php';
 
             let currentFilter = '';
 
-            // Set the base API path dynamically
-            TournamentAPI.baseURL = '<?php echo getBackendPath('api/tournament_api.php'); ?>';
+            // Set the base API path dynamically - use absolute path
+            TournamentAPI.baseURL = '/GitHub%20Repos/Tournament-Management-System/backend/api/tournament_api.php';
             console.log('Tournament API URL:', TournamentAPI.baseURL);
 
             // Load tournaments immediately (DOM is already loaded since this is AJAX-loaded content)
