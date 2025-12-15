@@ -17,21 +17,32 @@ function checkAdminAccess() {
 }
 
 /**
- * Generate demo active sessions data
+ * Load active sessions from backend
  */
 async function loadActiveSessions() {
     const container = document.getElementById('active-sessions-container');
     
     try {
-        const users = await getAllUsers();
+        // Fetch active sessions from backend
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch('/GitHub Repos/Tournament-Management-System/backend/api/admin_api.php?action=active-sessions', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include'
+        });
         
-        // Create demo sessions based on users (frontend only)
-        const activeSessions = users.slice(0, 6).map((user, index) => ({
-            username: user.username,
-            ip: `192.168.1.${100 + index}`,
-            userAgent: ['Chrome', 'Firefox', 'Safari', 'Edge'][index % 4],
-            lastActivity: new Date(Date.now() - Math.random() * 3600000).toISOString()
-        }));
+        if (!response.ok) {
+            throw new Error('Failed to fetch active sessions');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.sessions) {
+            throw new Error('Invalid response from server');
+        }
+        
+        const activeSessions = data.sessions;
         
         if (activeSessions.length === 0) {
             container.innerHTML = `
@@ -47,7 +58,7 @@ async function loadActiveSessions() {
 
         let html = '<div class="space-y-3">';
         activeSessions.forEach(session => {
-            const browserIcon = getBrowserIcon(session.userAgent);
+            const browserIcon = getBrowserIcon(session.user_agent);
             
             html += `
                 <div class="flex items-center justify-between p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-green-500/50 transition-colors">
@@ -57,7 +68,7 @@ async function loadActiveSessions() {
                         </div>
                         <div>
                             <p class="text-white font-semibold">${escapeHtml(session.username)}</p>
-                            <p class="text-xs text-gray-400">IP: ${session.ip} • ${session.userAgent}</p>
+                            <p class="text-xs text-gray-400">IP: ${escapeHtml(session.ip_address || 'N/A')} • ${escapeHtml(getBrowserName(session.user_agent))}</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -65,7 +76,7 @@ async function loadActiveSessions() {
                             <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                             <span class="text-xs text-green-400">Active</span>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">${getTimeAgo(session.lastActivity)}</p>
+                        <p class="text-xs text-gray-500 mt-1">${getTimeAgo(session.last_activity)}</p>
                     </div>
                 </div>
             `;
@@ -87,59 +98,32 @@ async function loadActiveSessions() {
 }
 
 /**
- * Generate demo activity log
+ * Load activity log from backend
  */
 async function loadActivityLog() {
     const container = document.getElementById('activity-log-container');
     
     try {
-        const users = await getAllUsers();
-        
-        // Create demo activity log (frontend only)
-        const activities = [];
-        
-        // Add some demo activities
-        activities.push({
-            type: 'login',
-            user: users[0]?.username || 'Admin',
-            action: 'Logged in',
-            timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString()
+        // Fetch activity log from backend
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch('/GitHub Repos/Tournament-Management-System/backend/api/admin_api.php?action=activity-log', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include'
         });
         
-        activities.push({
-            type: 'role',
-            user: users[1]?.username || 'User',
-            action: 'Requested Organizer role',
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-        });
+        if (!response.ok) {
+            throw new Error('Failed to fetch activity log');
+        }
         
-        activities.push({
-            type: 'tournament',
-            user: users[2]?.username || 'Organizer',
-            action: 'Created new tournament "Summer Championship"',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        });
+        const data = await response.json();
         
-        activities.push({
-            type: 'user',
-            user: users[3]?.username || 'Player',
-            action: 'Registered new account',
-            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-        });
+        if (!data.success || !data.activities) {
+            throw new Error('Invalid response from server');
+        }
         
-        activities.push({
-            type: 'role',
-            user: 'Admin',
-            action: 'Approved Organizer role request',
-            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-        });
-        
-        activities.push({
-            type: 'tournament',
-            user: users[1]?.username || 'Organizer',
-            action: 'Started tournament "Spring Cup"',
-            timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString()
-        });
+        const activities = data.activities;
         
         if (activities.length === 0) {
             container.innerHTML = `
@@ -164,7 +148,7 @@ async function loadActivityLog() {
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-white text-sm">
-                            <span class="font-semibold">${escapeHtml(activity.user)}</span> ${activity.action}
+                            <span class="font-semibold">${escapeHtml(activity.user)}</span> ${escapeHtml(activity.action)}
                         </p>
                         <p class="text-xs text-gray-400 mt-1">${getTimeAgo(activity.timestamp)}</p>
                     </div>
@@ -190,12 +174,27 @@ async function loadActivityLog() {
 /**
  * Get browser icon SVG
  */
-function getBrowserIcon(browser) {
+function getBrowserIcon(userAgent) {
     return `
         <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
         </svg>
     `;
+}
+
+/**
+ * Get browser name from user agent
+ */
+function getBrowserName(userAgent) {
+    if (!userAgent) return 'Unknown';
+    
+    if (userAgent.includes('Firefox')) return 'Firefox';
+    if (userAgent.includes('Chrome')) return 'Chrome';
+    if (userAgent.includes('Safari')) return 'Safari';
+    if (userAgent.includes('Edge')) return 'Edge';
+    if (userAgent.includes('Opera')) return 'Opera';
+    
+    return 'Browser';
 }
 
 /**

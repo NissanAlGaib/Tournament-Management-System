@@ -157,7 +157,7 @@ require_once __DIR__ . '/../../../helpers/path_helper.php';
                             </svg>
                         </div>
                         <div class="text-right">
-                            <p class="text-3xl font-bold text-white">24</p>
+                            <p class="text-3xl font-bold text-white" id="total-tournaments">-</p>
                             <p class="text-sm text-gray-400">Tournaments</p>
                         </div>
                     </div>
